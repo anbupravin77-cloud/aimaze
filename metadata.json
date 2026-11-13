@@ -1,0 +1,6 @@
+{
+  "name": "Gridworld Gym — RL & DSA Lab",
+  "description": "Interactive Tabular Q-Learning & Data Structures Simulator powered by pointer-based WeightedGraph, TrajectoryStack, CircularReplayBuffer, and BFSQueue.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,587 @@
+/* ============================================================================
+   GRIDWORLD DSA — TACTILE HARDWARE & SPATIAL BENTO DESIGN SYSTEM
+   Two Precision Themes:
+     1. Studio Light (Default) — Industrial Alabaster, Jet Ink & Signal Orange
+     2. Carbon Dark (html.dark) — Deep Obsidian, Specular Hairlines & Phosphor Mint
+   Primary Typeface: Inter · Data/Code: JetBrains Mono · Zero Layout Shift (CLS=0)
+   ============================================================================ */
+
+:root {
+  /* Spring Physics Easing Curves */
+  --spring-bounce: linear(
+    0, 0.452 7.8%, 0.803 16.1%, 1.008 24.9%, 1.077 31.8%,
+    1.084 36.4%, 1.045 48.5%, 1.008 62.6%, 0.997 78.2%, 1
+  );
+  --spring-soft: linear(
+    0, 0.368 8.2%, 0.692 17.1%, 0.909 26.3%, 1.014 35.1%,
+    1.044 43.2%, 1.028 55.4%, 1.005 70.1%, 0.999 85%, 1
+  );
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 1. STUDIO LIGHT THEME (Braun / Teenage Engineering Industrial Paper) */
+  --bg-canvas: #f2f2ee;
+  --bg-surface: #ffffff;
+  --bg-well: #f4f4f1;
+  --bg-well-hover: #eaeae5;
+  --bg-telemetry: #141413;
+  --bg-telemetry-card: #1e1e1c;
+
+  /* Ink & Contrast */
+  --text-primary: #121211;
+  --text-secondary: #52524e;
+  --text-muted: #82827c;
+  --text-on-telemetry: #fafaf9;
+  --text-on-telemetry-muted: #a8a8a0;
+
+  /* Structural Hairlines & Bevels */
+  --border-line: #e2e2dc;
+  --border-strong: #c4c4bc;
+  --border-telemetry: #2e2e2b;
+
+  /* Hardware Signal Accents */
+  --accent-primary: #ff4f00; /* International Signal Orange */
+  --accent-primary-hover: #e04400;
+  --accent-primary-soft: rgba(255, 79, 0, 0.10);
+
+  --accent-terracotta: #ff4f00;
+  --accent-terracotta-soft: rgba(255, 79, 0, 0.10);
+
+  --accent-moss: #059669; /* Precision Emerald */
+  --accent-moss-soft: rgba(5, 150, 105, 0.10);
+
+  --accent-ochre: #d97706; /* Industrial Amber */
+  --accent-ochre-soft: rgba(217, 119, 6, 0.11);
+
+  --accent-crimson: #dc2626;
+  --accent-crimson-soft: rgba(220, 38, 38, 0.10);
+
+  --accent-plum: #7c3aed;
+  --accent-plum-soft: rgba(124, 58, 237, 0.10);
+
+  /* Tactile Hardware Shadows */
+  --shadow-card:
+    0 1px 2px rgba(18, 18, 17, 0.04),
+    0 6px 20px -4px rgba(18, 18, 17, 0.05);
+  --shadow-card-hover:
+    0 4px 12px rgba(18, 18, 17, 0.06),
+    0 14px 28px -6px rgba(18, 18, 17, 0.08);
+  --shadow-keycap:
+    0 1px 0 rgba(18, 18, 17, 0.08),
+    0 2px 4px rgba(18, 18, 17, 0.04);
+  --shadow-keycap-hover:
+    0 4px 12px rgba(18, 18, 17, 0.09),
+    0 2px 4px rgba(18, 18, 17, 0.05);
+}
+
+/* 2. CARBON DARK THEME (Obsidian Hardware & Luminous Phosphor) */
+html.dark {
+  --bg-canvas: #09090b;
+  --bg-surface: #121215;
+  --bg-well: #18181c;
+  --bg-well-hover: #222228;
+  --bg-telemetry: #141418;
+  --bg-telemetry-card: #1b1b21;
+
+  --text-primary: #f4f4f6;
+  --text-secondary: #a1a1aa;
+  --text-muted: #6e6e77;
+  --text-on-telemetry: #f4f4f6;
+  --text-on-telemetry-muted: #9e9ea8;
+
+  --border-line: #24242b;
+  --border-strong: #383842;
+  --border-telemetry: #272730;
+
+  --accent-primary: #ff5e1a;
+  --accent-primary-hover: #ff7438;
+  --accent-primary-soft: rgba(255, 94, 26, 0.15);
+
+  --accent-terracotta: #ff5e1a;
+  --accent-terracotta-soft: rgba(255, 94, 26, 0.15);
+
+  --accent-moss: #10b981;
+  --accent-moss-soft: rgba(16, 185, 129, 0.15);
+
+  --accent-ochre: #f59e0b;
+  --accent-ochre-soft: rgba(245, 158, 11, 0.15);
+
+  --accent-crimson: #f43f5e;
+  --accent-crimson-soft: rgba(244, 63, 94, 0.15);
+
+  --accent-plum: #a78bfa;
+  --accent-plum-soft: rgba(167, 139, 250, 0.15);
+
+  --shadow-card:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 24px -4px rgba(0, 0, 0, 0.55);
+  --shadow-card-hover:
+    0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+    0 14px 32px -4px rgba(0, 0, 0, 0.70);
+  --shadow-keycap:
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 2px 5px rgba(0, 0, 0, 0.45);
+  --shadow-keycap-hover:
+    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 6px 16px rgba(0, 0, 0, 0.60);
+}
+
+/* ============================================================================
+   BASE RESET, TYPOGRAPHY & BROWSER SURFACES
+   ============================================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  line-height: 1.45;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  transition: background-color 0.25s var(--ease-out-expo), color 0.25s var(--ease-out-expo);
+}
+
+::selection {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.25rem, 1.9vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+/* ============================================================================
+   DOT-MATRIX STUDIO CHASSIS & BENTO MODULES
+   ============================================================================ */
+
+.schematic-bg {
+  background-image: radial-gradient(rgba(18, 18, 17, 0.11) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center top;
+}
+
+html.dark .schematic-bg {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.arch-shell {
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 0 clamp(0.85rem, 2vw, 1.75rem);
+}
+
+/* Bento Module Card */
+.arch-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.4s var(--spring-soft),
+    box-shadow 0.4s var(--spring-soft),
+    border-color 0.2s var(--ease-out-expo),
+    background-color 0.2s var(--ease-out-expo);
+  will-change: transform;
+}
+
+.arch-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-strong);
+}
+
+/* Recessed Instrument Well */
+.arch-well {
+  background: var(--bg-well);
+  border: 1px solid var(--border-line);
+  border-radius: 10px;
+  transition: border-color 0.2s var(--ease-out-expo), background-color 0.2s var(--ease-out-expo);
+}
+
+/* High-Contrast Telemetry Deck */
+.espresso-band {
+  background-color: var(--bg-telemetry);
+  color: var(--text-on-telemetry);
+  border: 1px solid var(--border-telemetry);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.4s var(--spring-soft),
+    box-shadow 0.4s var(--spring-soft),
+    border-color 0.2s var(--ease-out-expo);
+}
+
+.espresso-band:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.espresso-card {
+  background-color: var(--bg-telemetry-card);
+  border: 1px solid var(--border-telemetry);
+  border-radius: 11px;
+  transition:
+    transform 0.35s var(--spring-soft),
+    border-color 0.2s var(--ease-out-expo);
+}
+
+.espresso-card:hover {
+  transform: translateY(-1.5px);
+  border-color: #3f3f46;
+}
+
+/* ============================================================================
+   ZERO-LAYOUT-SHIFT (CLS = 0) LOCKED VIEWPORTS FOR 2×2 BENTO GRID
+   ============================================================================ */
+
+/* 03. Linked Stack Container: strictly 196px tall in 2x2 Bento Grid */
+.stack-scroll-viewport {
+  height: 196px;
+  min-height: 196px;
+  max-height: 196px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  contain: strict;
+}
+
+/* 04. Singly Linked List 4-Edge Container: strictly 172px tall */
+.edges-fixed-viewport {
+  height: 172px;
+  min-height: 172px;
+  max-height: 172px;
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  contain: strict;
+}
+
+/* Single Edge Row inside Linked List Card */
+.edge-fixed-row {
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition:
+    transform 0.36s var(--spring-bounce),
+    border-color 0.18s var(--ease-out-expo),
+    background-color 0.18s var(--ease-out-expo),
+    box-shadow 0.22s var(--ease-out-expo);
+}
+
+button.edge-fixed-row:hover {
+  transform: translateX(3px) scale(1.008);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+button.edge-fixed-row:active {
+  transform: translateX(1px) scale(0.992);
+}
+
+/* 02. FIFO Queue Horizontal Pipe: strictly 54px tall */
+.queue-pipe-viewport {
+  height: 54px;
+  min-height: 54px;
+  max-height: 54px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  contain: strict;
+}
+
+/* 01. Circular Queue 10-Slot Cards: strictly 58px tall in compact 5x2 grid */
+.ring-slot-card {
+  height: 58px;
+  min-height: 58px;
+  max-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition:
+    transform 0.36s var(--spring-bounce),
+    border-color 0.18s var(--ease-out-expo),
+    background-color 0.18s var(--ease-out-expo),
+    box-shadow 0.25s var(--ease-out-expo);
+}
+
+.ring-slot-card:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================================
+   TACTILE HARDWARE KEYCAP BUTTONS & SEGMENTED SWITCHES
+   ============================================================================ */
+
+.btn-arch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 38px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9px;
+  font-size: 0.8125rem; /* 13px crisp UI label */
+  font-weight: 600;
+  line-height: 1.2;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-line);
+  box-shadow: var(--shadow-keycap);
+  cursor: pointer;
+  transition:
+    transform 0.38s var(--spring-bounce),
+    box-shadow 0.32s var(--spring-soft),
+    background-color 0.16s var(--ease-out-expo),
+    border-color 0.16s var(--ease-out-expo),
+    color 0.16s var(--ease-out-expo);
+  user-select: none;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.btn-arch:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: var(--shadow-keycap-hover);
+  border-color: var(--border-strong);
+  background: var(--bg-well);
+}
+
+.btn-arch:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: none;
+  transition-duration: 0.08s;
+}
+
+.btn-arch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-sm {
+  min-height: 32px;
+  padding: 0.3rem 0.68rem;
+  font-size: 0.78125rem; /* 12.5px */
+  border-radius: 8px;
+}
+
+/* Primary Signal Orange Hardware Keycap */
+.btn-terracotta {
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: var(--accent-primary);
+}
+
+.btn-terracotta:hover:not(:disabled) {
+  background: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
+  color: #ffffff;
+}
+
+html.dark .btn-terracotta {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Emerald Signal Keycap */
+.btn-moss {
+  background: var(--accent-moss-soft);
+  color: var(--accent-moss);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.btn-moss:hover:not(:disabled) {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: #ffffff;
+}
+
+/* Amber Signal Keycap */
+.btn-ochre {
+  background: var(--accent-ochre-soft);
+  color: var(--accent-ochre);
+  border-color: rgba(245, 158, 11, 0.30);
+}
+
+.btn-ochre:hover:not(:disabled) {
+  background: var(--accent-ochre);
+  border-color: var(--accent-ochre);
+  color: #ffffff;
+}
+
+/* Segmented Mode Switch */
+.seg-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+  background: var(--bg-well);
+  border: 1px solid var(--border-line);
+  border-radius: 10px;
+}
+
+.seg-btn {
+  min-height: 32px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 7px;
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform 0.36s var(--spring-bounce),
+    background-color 0.16s var(--ease-out-expo),
+    color 0.16s var(--ease-out-expo),
+    box-shadow 0.2s var(--ease-out-expo);
+}
+
+.seg-btn:hover:not(.active) {
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.seg-btn:active {
+  transform: scale(0.96);
+}
+
+.seg-btn.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+
+/* Two-Theme Segmented Pill Switch in Header */
+.theme- pill-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  background: var(--bg-well);
+  border: 1px solid var(--border-line);
+  border-radius: 999px;
+}
+
+/* Coarse Pointer (Touch Devices: 44px Minimum Targets) */
+@media (pointer: coarse) {
+  .btn-arch {
+    min-height: 44px;
+    padding: 0.55rem 0.95rem;
+  }
+  .seg-btn {
+    min-height: 40px;
+  }
+}
+
+/* ============================================================================
+   CANVAS & RANGE SLIDERS
+   ============================================================================ */
+
+#gridCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: pointer;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border-line);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: 2px solid var(--bg-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.30);
+  cursor: pointer;
+  transition: transform 0.35s var(--spring-bounce), box-shadow 0.2s var(--ease-out-expo);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.22);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gridworld Gym — Interactive Data Structures &amp; AI Maze Lab</title>
+  <meta name="description" content="Interactive Data Structures &amp; AI Maze Simulator built from scratch using Circular Queue, FIFO Queue, Linked List Stack (LIFO), and Singly Linked Lists." />
+  <meta property="og:title" content="Gridworld Gym — Interactive Data Structures &amp; AI Maze Lab" />
+  <meta property="og:description" content="Interactive Data Structures &amp; AI Maze Simulator built from scratch using Circular Queue, FIFO Queue, Linked List Stack (LIFO), and Singly Linked Lists." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter (Primary UI & Display) + JetBrains Mono (Coordinates & Pointers) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tactile Hardware & Spatial Bento Stylesheet -->
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body class="schematic-bg">
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-[92vw]"></div>
+
+  <!-- ==================== FLOATING CAPSULE NAVIGATION BAR ==================== -->
+  <header id="top" class="sticky top-2.5 z-40 px-3 sm:px-6 mb-3">
+    <div class="max-w-[1440px] mx-auto arch-card rounded-full px-3.5 sm:px-5 py-2 flex items-center justify-between gap-3 bg-[var(--bg-surface)]/90 backdrop-blur-md">
+      <!-- Brand + Inline Title -->
+      <div class="flex items-center gap-3 min-w-0">
+        <a href="#top" class="flex items-center gap-2 font-extrabold tracking-tight text-sm sm:text-base shrink-0">
+          <span class="w-7 h-7 rounded-full bg-[var(--accent-primary)] text-white flex items-center justify-center font-mono-code text-xs font-bold shadow-xs">
+            *
+          </span>
+          <span>gridworld.dsa</span>
+        </a>
+        <span class="hidden md:inline-block h-4 w-[1px] bg-[var(--border-line)]"></span>
+        <h1 class="hidden md:block text-xs lg:text-sm font-semibold text-[var(--text-secondary)] truncate">
+          Maze Reinforcement Learning via <strong class="text-[var(--text-primary)]">4 Explicit Pointer Structures</strong>
+        </h1>
+      </div>
+
+      <!-- Center Quick-Jump Structure Pills (01 -> 04) -->
+      <nav class="hidden xl:flex items-center gap-1.5 font-mono-code text-xs">
+        <a href="#ringCardSection" class="px-2.5 py-1 rounded-full arch-well hover:border-[var(--border-strong)] transition-colors">
+          <strong class="text-[var(--accent-ochre)]">01</strong> Circular Queue
+        </a>
+        <a href="#bfsQueueCard" class="px-2.5 py-1 rounded-full arch-well hover:border-[var(--border-strong)] transition-colors">
+          <strong class="text-[var(--accent-moss)]">02</strong> FIFO Queue
+        </a>
+        <a href="#stackListSection" class="px-2.5 py-1 rounded-full arch-well hover:border-[var(--border-strong)] transition-colors">
+          <strong class="text-[var(--accent-terracotta)]">03</strong> LIFO Stack
+        </a>
+        <a href="#stackListSection" class="px-2.5 py-1 rounded-full arch-well hover:border-[var(--border-strong)] transition-colors">
+          <strong class="text-[var(--text-primary)]">04</strong> Linked List
+        </a>
+      </nav>
+
+      <!-- Right Actions: Two-Theme Switch (Studio Light / Carbon Dark) + Study Guide + Pointer Code -->
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <button id="btnThemeToggle" type="button" class="btn-arch btn-sm rounded-full px-3" title="Toggle between Studio Light and Carbon Dark theme">
+          <span id="themeToggleIcon" class="text-amber-500">☾</span>
+          <span id="themeToggleLabel">Carbon Dark</span>
+        </button>
+        <button id="btnOpenStudyGuide" type="button" class="btn-arch btn-sm rounded-full px-3">
+          Study Guide
+        </button>
+        <button id="btnViewCode" type="button" class="btn-arch btn-sm btn-terracotta rounded-full px-3.5">
+          <span>Pointer Code</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 17L17 7M7 7h10v10" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== SPATIAL BENTO WORKBENCH (SINGLE-VIEW COMMAND DECK) ==================== -->
+  <main id="workbenchSection" class="arch-shell pb-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+      <!-- ==================== LEFT DECK: 10×10 HARDWARE MATRIX + KEYCAP CONTROLS (5 COLS) ==================== -->
+      <section class="lg:col-span-5 flex flex-col gap-3 lg:sticky lg:top-16">
+        <div class="arch-card p-3.5 sm:p-4 flex flex-col gap-2.5">
+
+          <!-- Row 1: Board Header + Presets + Reachability Status -->
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-[var(--accent-primary)]"></span>
+              <h2 class="text-sm sm:text-base font-bold tracking-tight">10×10 Maze Matrix</h2>
+              <span id="modeSubtitle" class="hidden sm:inline-block text-xs text-[var(--text-secondary)] font-mono-code">· Click tile</span>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <div id="reachabilityBadge" class="px-2.5 py-0.5 rounded-full text-xs font-mono-code font-semibold bg-[var(--accent-moss-soft)] text-[var(--accent-moss)]">
+                ✓ Path Open
+              </div>
+              <button type="button" id="btnExportMap" class="btn-arch btn-sm py-0.5 px-2 text-xs" title="Export Maze JSON">Save</button>
+              <button type="button" id="btnImportMap" class="btn-arch btn-sm py-0.5 px-2 text-xs" title="Import Maze JSON">Load</button>
+              <input id="mapFileInput" type="file" accept="application/json,.json" class="hidden" />
+            </div>
+          </div>
+
+          <!-- Row 2: Unified Presets + 3-Mode Switch -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+            <div class="sm:col-span-6 flex items-center gap-1">
+              <button type="button" data-preset="default" class="preset-btn btn-arch btn-sm btn-terracotta flex-1 px-2">Default</button>
+              <button type="button" data-preset="wormhole" class="preset-btn btn-arch btn-sm flex-1 px-2">Portals</button>
+              <button type="button" data-preset="conveyor" class="preset-btn btn-arch btn-sm flex-1 px-2">Boosts</button>
+              <button type="button" id="btnRandomizeMap" class="btn-arch btn-sm px-2" title="Generate Random Maze">↻</button>
+            </div>
+
+            <div class="sm:col-span-6 seg-group" role="tablist" aria-label="Board Interaction Mode">
+              <button type="button" data-boardmode="INSPECT" class="board-mode-btn seg-btn active">Inspect</button>
+              <button type="button" data-boardmode="EDIT" class="board-mode-btn seg-btn">Paint</button>
+              <button type="button" data-boardmode="PLAY" class="board-mode-btn seg-btn">Play</button>
+            </div>
+          </div>
+
+          <!-- Contextual Panel A: Brush Palette (Edit Mode) -->
+          <div id="editPalettePanel" class="hidden flex-col gap-1.5 p-2.5 arch-well">
+            <div class="grid grid-cols-3 gap-1.5">
+              <button type="button" data-brush="WALL" class="brush-btn btn-arch btn-sm btn-terracotta">▨ Wall</button>
+              <button type="button" data-brush="TRAP" class="brush-btn btn-arch btn-sm">× Trap (-50)</button>
+              <button type="button" data-brush="BOOST" id="btnBrushBoost" class="brush-btn btn-arch btn-sm">
+                <span id="boostBrushGlyph">→</span>
+                <span id="boostBrushLabel">Boost →</span>
+              </button>
+              <button type="button" data-brush="PORTAL_A" class="brush-btn btn-arch btn-sm">A Portal A</button>
+              <button type="button" data-brush="PORTAL_B" class="brush-btn btn-arch btn-sm">B Portal B</button>
+              <button type="button" data-brush="BONUS" class="brush-btn btn-arch btn-sm">◇ Bonus (+25)</button>
+              <button type="button" data-brush="START" class="brush-btn btn-arch btn-sm">S Start</button>
+              <button type="button" data-brush="GOAL" class="brush-btn btn-arch btn-sm">G Goal (+100)</button>
+              <button type="button" data-brush="EMPTY" class="brush-btn btn-arch btn-sm">□ Erase</button>
+            </div>
+          </div>
+
+          <!-- Contextual Panel B: Play Yourself Controls -->
+          <div id="manualPlayPanel" class="hidden flex-col gap-2 p-2.5 arch-well">
+            <div class="flex items-center justify-between gap-2 font-mono-code text-xs">
+              <span>Steps: <strong id="humanStepsVal">0</strong></span>
+              <span>Points: <strong id="humanScoreVal">0</strong></span>
+              <span>AI Best: <strong id="aiBenchmarkVal" class="text-[var(--accent-moss)]">—</strong></span>
+              <button type="button" id="btnResetManualRun" class="btn-arch btn-sm">Restart</button>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 max-w-[156px] mx-auto w-full">
+              <div></div>
+              <button type="button" data-dpad="UP" class="dpad-btn btn-arch btn-sm font-mono-code font-bold">↑</button>
+              <div></div>
+              <button type="button" data-dpad="LEFT" class="dpad-btn btn-arch btn-sm font-mono-code font-bold">←</button>
+              <button type="button" data-dpad="DOWN" class="dpad-btn btn-arch btn-sm font-mono-code font-bold">↓</button>
+              <button type="button" data-dpad="RIGHT" class="dpad-btn btn-arch btn-sm font-mono-code font-bold">→</button>
+            </div>
+          </div>
+
+          <!-- 10×10 Hardware Matrix Canvas + Immediate Keycap Action Deck -->
+          <div class="w-full flex flex-col gap-2">
+            <div class="relative w-full max-w-[356px] xl:max-w-[380px] mx-auto aspect-square rounded-2xl overflow-hidden border border-[var(--border-strong)] bg-[var(--bg-well)] p-1">
+              <canvas id="gridCanvas" class="rounded-xl"></canvas>
+            </div>
+
+            <!-- 6 Tactile Keycap Simulation Controls Directly Below the Board -->
+            <div class="grid grid-cols-3 gap-1.5">
+              <button type="button" id="btnWatchEpisode" class="btn-arch btn-sm">
+                <svg class="w-3.5 h-3.5 shrink-0 text-[var(--accent-primary)]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                <span>Watch 1 Run</span>
+              </button>
+              <button type="button" id="btnTrain100" class="btn-arch btn-sm btn-terracotta">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Fast 100 Runs</span>
+              </button>
+              <button type="button" id="btnOptimalRun" class="btn-arch btn-sm">
+                <svg class="w-3.5 h-3.5 shrink-0 text-[var(--accent-moss)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Best Path</span>
+              </button>
+              <button type="button" id="btnStepDebugStart" class="btn-arch btn-sm btn-ochre">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l10 8-10 8V4z"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                <span>Step Debug</span>
+              </button>
+              <button type="button" id="btnAnimateBFS" class="btn-arch btn-sm btn-moss">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                <span>Queue Search</span>
+              </button>
+              <button type="button" id="btnAutoTrain" class="btn-arch btn-sm">
+                <span id="autoTrainLabel">∞ Auto: OFF</span>
+              </button>
+            </div>
+
+            <!-- Permanently Allocated Status & Step Controller Bar (Zero CLS) -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-1.5">
+              <div class="sm:col-span-7 h-9 px-3 arch-well font-mono-code text-xs flex items-center justify-between gap-2">
+                <span id="phaseText" class="truncate font-medium">READY · SELECT AN ACTION</span>
+                <span id="phaseStepBadge" class="text-[var(--accent-primary)] font-bold shrink-0">10×10</span>
+              </div>
+
+              <div id="debuggerBar" class="sm:col-span-5 h-9 px-2 rounded-lg border border-[var(--border-line)] bg-[var(--bg-well)] flex items-center justify-between gap-1 transition-colors">
+                <span id="debuggerStateLabel" class="sr-only">STEP CONTROLLER</span>
+                <button type="button" id="btnPauseResumeDebug" disabled class="btn-arch btn-sm py-0.5 px-2 text-xs flex-1 disabled:opacity-40 disabled:pointer-events-none">Pause</button>
+                <button type="button" id="btnStepOnceDebug" disabled class="btn-arch btn-sm btn-terracotta py-0.5 px-2 text-xs flex-1 disabled:opacity-40 disabled:pointer-events-none">Step +1</button>
+                <button type="button" id="btnStopDebug" disabled class="btn-arch btn-sm py-0.5 px-2 text-xs disabled:opacity-40 disabled:pointer-events-none" title="Stop Run">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compact Legend + Overlays + Sliders Footer -->
+          <div class="p-2.5 arch-well flex flex-col gap-2">
+            <div class="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1 text-xs font-mono-code text-[var(--text-secondary)] pb-1.5 border-b border-[var(--border-line)]">
+              <span><strong class="text-[var(--text-primary)]">S</strong> Start</span>
+              <span><strong class="text-[var(--accent-moss)]">G</strong> +100</span>
+              <span><strong class="text-[var(--accent-crimson)]">×</strong> -50</span>
+              <span><strong class="text-[var(--accent-ochre)]">◇</strong> +25</span>
+              <span><strong class="text-[var(--text-primary)]">→</strong> Boost</span>
+              <span><strong class="text-[var(--accent-plum)]">A/B</strong> Portal</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5">
+              <div class="flex flex-col gap-0.5">
+                <div class="flex justify-between text-[11px] font-medium">
+                  <span>Speed</span>
+                  <span id="speedValue" class="font-mono-code font-bold">65%</span>
+                </div>
+                <input id="speedSlider" type="range" min="1" max="100" value="65" />
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <div class="flex justify-between text-[11px] font-medium">
+                  <span>Learn Rate</span>
+                  <span id="valAlpha" class="font-mono-code font-bold">0.45</span>
+                </div>
+                <input id="sliderAlpha" type="range" min="0.05" max="1" step="0.01" value="0.45" />
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <div class="flex justify-between text-[11px] font-medium">
+                  <span>Future</span>
+                  <span id="valGamma" class="font-mono-code font-bold">0.92</span>
+                </div>
+                <input id="sliderGamma" type="range" min="0.50" max="0.99" step="0.01" value="0.92" />
+              </div>
+
+              <div class="flex flex-col gap-0.5">
+                <div class="flex justify-between text-[11px] font-medium">
+                  <span>Decay</span>
+                  <span id="valDecay" class="font-mono-code font-bold">0.940</span>
+                </div>
+                <input id="sliderDecay" type="range" min="0.850" max="0.999" step="0.005" value="0.940" />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-line)] text-xs text-[var(--text-secondary)]">
+              <div class="flex items-center gap-3">
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input id="toggleHeatmap" type="checkbox" checked class="w-3.5 h-3.5 accent-[#ff4f00] cursor-pointer" />
+                  <span>Tint</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input id="toggleArrows" type="checkbox" checked class="w-3.5 h-3.5 accent-[#ff4f00] cursor-pointer" />
+                  <span>Arrows</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer select-none">
+                  <input id="toggleShortestPath" type="checkbox" checked class="w-3.5 h-3.5 accent-[#ff4f00] cursor-pointer" />
+                  <span>BFS Path</span>
+                </label>
+                <label class="hidden sm:flex items-center gap-1 cursor-pointer select-none">
+                  <input id="toggleReplay" type="checkbox" checked class="w-3.5 h-3.5 accent-[#ff4f00] cursor-pointer" />
+                  <span>Ring Replay</span>
+                </label>
+              </div>
+              <button type="button" id="btnResetBrain" class="font-mono-code font-bold text-[var(--accent-crimson)] hover:underline cursor-pointer">
+                ↺ Reset Memory
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== RIGHT DECK: TELEMETRY + 2×2 SYMMETRICAL DSA BENTO GRID (7 COLS) ==================== -->
+      <section class="lg:col-span-7 flex flex-col gap-3.5">
+
+        <!-- TOP BENTO MODULE: HIGH-CONTRAST TELEMETRY & WIN RATE GRAPH -->
+        <div class="espresso-band p-4 flex flex-col gap-3.5">
+          <!-- 4 Tabular Metrics + Live Formula Pill -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-0 sm:divide-x divide-[#2e2e2b]">
+            <div class="sm:pr-3 min-w-0">
+              <div class="text-[11px] font-mono-code uppercase tracking-wider text-[var(--text-on-telemetry-muted)]">Total Runs</div>
+              <div id="statEpisode" class="metric-value text-[var(--text-on-telemetry)] mt-0.5 truncate">0</div>
+            </div>
+            <div class="sm:px-3 min-w-0">
+              <div class="text-[11px] font-mono-code uppercase tracking-wider text-[var(--text-on-telemetry-muted)]">Random Explore</div>
+              <div id="statEpsilon" class="metric-value text-[#ff7438] mt-0.5 truncate">100%</div>
+            </div>
+            <div class="sm:px-3 min-w-0">
+              <div class="text-[11px] font-mono-code uppercase tracking-wider text-[var(--text-on-telemetry-muted)]">Last Points</div>
+              <div class="flex items-baseline gap-2 mt-0.5">
+                <div id="statReward" class="metric-value text-[var(--text-on-telemetry)] truncate">0</div>
+                <div id="statOutcome" class="text-xs font-mono-code text-[var(--text-on-telemetry-muted)] truncate">Ready</div>
+              </div>
+            </div>
+            <div class="sm:pl-3 min-w-0">
+              <div class="text-[11px] font-mono-code uppercase tracking-wider text-[var(--text-on-telemetry-muted)]">Win Rate</div>
+              <div class="flex items-baseline gap-2 mt-0.5">
+                <div id="statWinRate" class="metric-value text-[#10b981] truncate">0.0%</div>
+                <div id="statWinCount" class="text-xs font-mono-code text-[var(--text-on-telemetry-muted)] truncate">0/0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Split Chart + Live Bellman Stack Update Readout -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-stretch">
+            <div class="md:col-span-7 espresso-card p-3 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-2 text-xs font-mono-code text-[var(--text-on-telemetry-muted)] mb-1">
+                <span class="font-bold text-[var(--text-on-telemetry)]">WIN RATE &amp; SCORE CURVE</span>
+                <span class="shrink-0"><span class="text-[#10b981]">●</span> Win % &nbsp;<span class="text-[#f59e0b]">--</span> Points</span>
+              </div>
+              <canvas id="lcCanvas" style="width:100%;height:102px;display:block"></canvas>
+            </div>
+
+            <div class="md:col-span-5 espresso-card p-3 flex flex-col justify-between font-mono-code">
+              <div class="flex items-center justify-between text-[11px] uppercase tracking-wider text-[#ff7438] font-bold">
+                <span>BELLMAN STACK UPDATE</span>
+                <span>O(1)</span>
+              </div>
+              <div id="liveMathBox" class="text-xs text-[var(--text-on-telemetry)] leading-relaxed my-auto py-1 break-words">
+                Q(s,a) ← Old + α·[R + γ·MaxNext − Old]
+              </div>
+              <div id="plainEnglishStory" class="text-xs font-sans text-[var(--text-on-telemetry-muted)] truncate border-t border-[#2e2e2b] pt-1.5">
+                Click "Watch 1 Run" or "Fast 100 Runs" to begin.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 2×2 SYMMETRICAL DATA STRUCTURE BENTO GRID ==================== -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-stretch">
+
+          <!-- MODULE 01 (TOP-LEFT): CIRCULAR QUEUE (RING WHEEL + 10 SLOTS) -->
+          <div id="ringCardSection" class="md:col-span-7 arch-card p-4 flex flex-col justify-between gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-1.5 pb-2.5 border-b border-[var(--border-line)]">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-[var(--accent-ochre-soft)] text-[var(--accent-ochre)] font-mono-code text-xs font-bold">01</span>
+                <h3 class="text-sm sm:text-base font-bold">Circular Queue</h3>
+                <span class="hidden sm:inline font-mono-code text-xs text-[var(--text-secondary)]">(rear+1)%10</span>
+              </div>
+
+              <div class="flex items-center gap-1.5 font-mono-code text-xs">
+                <span class="px-2 py-0.5 rounded arch-well">F:<strong id="ringHeadVal" class="text-[var(--accent-ochre)] ml-0.5">0</strong></span>
+                <span class="px-2 py-0.5 rounded arch-well">R:<strong id="ringTailVal" class="text-[var(--accent-terracotta)] ml-0.5">0</strong></span>
+                <span class="px-2 py-0.5 rounded arch-well"><strong id="ringCountVal">0/10</strong></span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center my-auto">
+              <!-- Compact Interactive SVG Ring Wheel -->
+              <div class="sm:col-span-4 flex items-center justify-center p-1.5 arch-well">
+                <svg id="ringWheelSvg" viewBox="0 0 200 200" class="w-28 h-28 sm:w-32 sm:h-32"></svg>
+              </div>
+
+              <!-- 10 Fixed Slots [0..9] in 5x2 Matrix -->
+              <div id="ringBufferGrid" class="sm:col-span-8 grid grid-cols-5 gap-1.5">
+                <!-- Populated dynamically with fixed-height .ring-slot-card cells -->
+              </div>
+            </div>
+          </div>
+
+          <!-- MODULE 02 (TOP-RIGHT): NORMAL FIFO QUEUE (LEVEL-BY-LEVEL BFS SEARCH) -->
+          <div id="bfsQueueCard" class="md:col-span-5 arch-card p-4 flex flex-col justify-between gap-2.5">
+            <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-[var(--border-line)]">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-[var(--accent-moss-soft)] text-[var(--accent-moss)] font-mono-code text-xs font-bold">02</span>
+                <h3 class="text-sm sm:text-base font-bold">FIFO Queue (BFS)</h3>
+              </div>
+              <button type="button" id="btnInlineAnimateBFS" class="btn-arch btn-sm btn-moss py-0.5 px-2.5 text-xs">
+                Animate Ripple
+              </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-1.5 font-mono-code text-xs text-center">
+              <div class="p-1.5 arch-well">
+                <div class="text-[10px] text-[var(--text-muted)]">FRONT</div>
+                <strong id="bfsFrontVal" class="text-[var(--accent-moss)]">(0,0)</strong>
+              </div>
+              <div class="p-1.5 arch-well">
+                <div class="text-[10px] text-[var(--text-muted)]">REAR</div>
+                <strong id="bfsRearVal" class="text-[var(--accent-ochre)]">(9,9)</strong>
+              </div>
+              <div class="p-1.5 arch-well">
+                <div class="text-[10px] text-[var(--text-muted)]">LENGTH</div>
+                <strong id="bfsSizeVal">0</strong>
+              </div>
+            </div>
+
+            <div id="bfsPlainExplanation" class="font-mono-code text-xs text-[var(--text-secondary)] truncate">
+              Shortest path verified via First-In, First-Out Linked Queue.
+            </div>
+
+            <!-- Horizontal Linked Node Pipe (Locked 54px Height) -->
+            <div id="bfsQueueNodesList" class="queue-pipe-viewport px-2.5 arch-well">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BOTTOM ROW OF 2×2 BENTO GRID: 03 (LIFO STACK) & 04 (SINGLY LINKED LIST) -->
+        <div id="stackListSection" class="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-stretch">
+
+          <!-- MODULE 03 (BOTTOM-LEFT): LINKED LIST STACK (LIFO) -->
+          <div class="md:col-span-6 arch-card p-4 flex flex-col gap-2.5">
+            <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-[var(--border-line)]">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-[var(--accent-terracotta-soft)] text-[var(--accent-terracotta)] font-mono-code text-xs font-bold">03</span>
+                <h3 class="text-sm sm:text-base font-bold">Linked Stack (LIFO)</h3>
+              </div>
+              <span id="stackSizeBadge" class="px-2 py-0.5 rounded arch-well font-mono-code text-xs font-bold">
+                DEPTH: 0
+              </span>
+            </div>
+
+            <!-- Pointer Status Bar (Fixed Single Line) -->
+            <div id="stackOperationStatus" class="h-8 px-3 arch-well font-mono-code text-xs flex items-center justify-between gap-2">
+              <span class="truncate">TOP → NULL</span>
+              <span class="font-bold text-[var(--accent-terracotta)] shrink-0">READY</span>
+            </div>
+
+            <!-- Stack Nodes List (Locked 196px Viewport -> Zero CLS) -->
+            <div id="stackContainer" class="stack-scroll-viewport pr-1 flex flex-col gap-1.5">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- MODULE 04 (BOTTOM-RIGHT): SINGLY LINKED LIST (NEIGHBOR MOVES PER TILE) -->
+          <div class="md:col-span-6 arch-card p-4 flex flex-col gap-2.5">
+            <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-[var(--border-line)]">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md arch-well font-mono-code text-xs font-bold">04</span>
+                <h3 class="text-sm sm:text-base font-bold">Singly Linked List</h3>
+              </div>
+              <div class="flex items-center gap-1.5 font-mono-code text-xs">
+                <span>TILE <strong id="inspectCoord">(0, 0)</strong></span>
+                <span id="inspectTypeBadge" class="px-2 py-0.5 rounded bg-[var(--accent-terracotta-soft)] text-[var(--accent-terracotta)] font-bold">
+                  START
+                </span>
+              </div>
+            </div>
+
+            <!-- Visual Pointer Chain Diagram + Max Score (Fixed Height) -->
+            <div class="h-8 px-2.5 arch-well font-mono-code text-xs flex items-center justify-between gap-2 overflow-hidden">
+              <div id="inspectChainVisual" class="flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+                <!-- Populated dynamically -->
+              </div>
+              <span id="inspectMaxQ" class="shrink-0 text-[11px] text-[var(--text-secondary)]">MAX: <strong>0.0</strong></span>
+            </div>
+
+            <!-- Outgoing Linked List Move Cards (Locked 172px Viewport -> Zero CLS) -->
+            <div id="inspectEdgesList" class="edges-fixed-viewport">
+              <!-- Populated dynamically with 4 identical-height .edge-fixed-row items -->
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- ==================== MODAL 1: CONCISE VISUAL STUDY GUIDE ==================== -->
+  <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div class="arch-card max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-6 py-4 border-b border-[var(--border-line)] flex items-center justify-between">
+        <h2 class="text-base sm:text-lg font-bold">How the 4 Classroom Data Structures Power This Maze</h2>
+        <button type="button" id="btnCloseHelpModal" class="btn-arch w-9 h-9 p-0 font-mono-code font-bold">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm leading-relaxed">
+        <div class="p-4 arch-well">
+          <div class="font-mono-code font-bold text-[var(--accent-ochre)] mb-1.5">01 · CIRCULAR QUEUE (10 SLOTS)</div>
+          <p class="text-[var(--text-secondary)]">
+            Stores the last 10 moves in a fixed ring array <code class="font-mono-code">[0..9]</code>. When slot <code class="font-mono-code">9</code> fills, <code class="font-mono-code">REAR = (REAR + 1) % 10</code> wraps around to slot <code class="font-mono-code">0</code> in <code class="font-mono-code">O(1)</code> time without shifting array items.
+          </p>
+        </div>
+
+        <div class="p-4 arch-well">
+          <div class="font-mono-code font-bold text-[var(--accent-moss)] mb-1.5">02 · NORMAL FIFO QUEUE</div>
+          <p class="text-[var(--text-secondary)]">
+            Adds neighbor tiles at <code class="font-mono-code">REAR</code> and removes from <code class="font-mono-code">FRONT</code> (<code class="font-mono-code">First-In, First-Out</code>) to check level-by-level that walls haven't blocked the Goal, and highlights the shortest hop route.
+          </p>
+        </div>
+
+        <div class="p-4 arch-well">
+          <div class="font-mono-code font-bold text-[var(--accent-terracotta)] mb-1.5">03 · LINKED LIST STACK (LIFO)</div>
+          <p class="text-[var(--text-secondary)]">
+            Every step taken during a run is <strong>Pushed</strong> onto <code class="font-mono-code">TOP</code>. When the run finishes at Goal (+100) or Trap (-50), steps are <strong>Popped</strong> in reverse order (<code class="font-mono-code">Last-In, First-Out</code>) so the rover traces backward to Start and updates tile scores.
+          </p>
+        </div>
+
+        <div class="p-4 arch-well">
+          <div class="font-mono-code font-bold text-[var(--text-primary)] mb-1.5">04 · SINGLY LINKED LIST</div>
+          <p class="text-[var(--text-secondary)]">
+            Each tile has an <code class="font-mono-code">edgesHead</code> pointer linking its valid moves (<code class="font-mono-code">UP → RIGHT → DOWN → LEFT → NULL</code>). Walls are omitted; Portals link across the board.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: POINTER SOURCE CODE VIEWER ==================== -->
+  <div id="codeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+    <div class="arch-card max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-6 py-4 border-b border-[var(--border-line)] flex items-center justify-between gap-4">
+        <h2 class="text-base sm:text-lg font-bold">Pointer Implementations (Pure JavaScript)</h2>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnCopyCode" class="btn-arch btn-terracotta py-1.5 px-3.5 text-xs sm:text-sm">Copy Code</button>
+          <button type="button" id="btnCloseCodeModal" class="btn-arch w-9 h-9 p-0 font-mono-code font-bold">✕</button>
+        </div>
+      </div>
+
+      <div class="px-6 pt-3 flex flex-wrap gap-2 border-b border-[var(--border-line)] bg-[var(--bg-well)]">
+        <button type="button" data-codetab="ring" class="code-tab-btn px-3.5 py-2 rounded-t-lg text-xs sm:text-sm font-mono-code font-bold bg-[var(--bg-surface)] text-[var(--accent-terracotta)] border border-b-0 border-[var(--border-line)] cursor-pointer">
+          01. Circular Queue
+        </button>
+        <button type="button" data-codetab="bfs" class="code-tab-btn px-3.5 py-2 rounded-t-lg text-xs sm:text-sm font-mono-code font-medium text-[var(--text-secondary)] cursor-pointer">
+          02. FIFO Queue
+        </button>
+        <button type="button" data-codetab="stack" class="code-tab-btn px-3.5 py-2 rounded-t-lg text-xs sm:text-sm font-mono-code font-medium text-[var(--text-secondary)] cursor-pointer">
+          03. Stack (LIFO)
+        </button>
+        <button type="button" data-codetab="graph" class="code-tab-btn px-3.5 py-2 rounded-t-lg text-xs sm:text-sm font-mono-code font-medium text-[var(--text-secondary)] cursor-pointer">
+          04. Linked List
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 bg-[#121215] text-[#f4f4f6]">
+        <pre id="dsaCodeDisplay" class="font-mono-code text-xs sm:text-sm leading-relaxed whitespace-pre overflow-x-auto"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Vanilla JS Application Script -->
+  <script type="module" src="./script.js"></script>
+</body>
+</html>

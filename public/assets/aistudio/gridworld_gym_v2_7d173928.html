@@ -1,0 +1,3194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visual AI Reinforcement Learning Gridworld Gym — DSA Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        ink: '#0A0A0A',
+                        paper: '#FFFFFF',
+                        subtle: '#FAFAFA',
+                        surface: '#F4F4F5',
+                        muted: '#52525B',
+                        hairline: '#E4E4E7',
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        /* Strict Pure Black & White Swiss Architectural Theme */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #FFFFFF;
+            color: #0A0A0A;
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Crisp Architectural Card Surface */
+        .swiss-card {
+            background-color: #FFFFFF;
+            border: 1px solid #0A0A0A;
+            border-radius: 12px;
+        }
+
+        .swiss-subcard {
+            background-color: #FAFAFA;
+            border: 1px solid #E4E4E7;
+            border-radius: 10px;
+        }
+
+        /* Diagonal Hatch Pattern for Wall Icons */
+        .wall-hatch {
+            background-color: #FFFFFF;
+            background-image: repeating-linear-gradient(
+                45deg,
+                #0A0A0A,
+                #0A0A0A 2px,
+                #FFFFFF 2px,
+                #FFFFFF 6px
+            );
+        }
+
+        /* Interactive Gridworld Canvas (Scroll-safe in Inspect Mode on Mobile) */
+        #gridCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: pan-y;
+        }
+
+        #gridCanvas.mode-edit,
+        #gridCanvas.mode-play {
+            touch-action: none;
+        }
+
+        /* Custom Monochrome Range Input */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: #E4E4E7;
+            border-radius: 999px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #0A0A0A;
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 0 0 1px #0A0A0A;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #0A0A0A;
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 0 0 1px #0A0A0A;
+            cursor: pointer;
+        }
+
+        /* Custom Monochrome Checkbox */
+        input[type="checkbox"] {
+            accent-color: #0A0A0A;
+        }
+
+        /* Clean Minimal Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAFAFA;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #A1A1AA;
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0A0A0A;
+        }
+
+        @keyframes subtleFadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-entry {
+            animation: subtleFadeIn 0.16s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-white text-[#0A0A0A] selection:bg-[#0A0A0A] selection:text-white">
+
+    <!-- Non-blocking Monochrome Toast Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 pointer-events-none max-w-[90vw]"></div>
+
+    <!-- ==================== TOP ARCHITECTURAL HEADER ==================== -->
+    <header class="border-b border-[#0A0A0A] bg-white">
+        <div class="max-w-[1360px] mx-auto px-5 lg:px-10 py-5 lg:py-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <!-- Title & Subtitle -->
+            <div class="flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl border border-[#0A0A0A] bg-[#0A0A0A] text-white flex items-center justify-center shrink-0 mt-0.5">
+                    <!-- Minimalist Geometric Graph Emblem -->
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="6" height="6" rx="1" />
+                        <rect x="15" y="3" width="6" height="6" rx="1" />
+                        <rect x="9" y="15" width="6" height="6" rx="1" />
+                        <path d="M9 6h6M6 9v3l4.5 3M18 9v3l-4.5 3" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <h1 class="text-lg sm:text-xl lg:text-2xl font-bold tracking-tight text-[#0A0A0A]">
+                            Visual AI Reinforcement Learning Gridworld Gym
+                        </h1>
+                        <span class="px-2.5 py-0.5 text-[11px] font-mono font-semibold uppercase tracking-wider border border-[#0A0A0A] rounded-md bg-[#FAFAFA] text-[#0A0A0A]">
+                            DSA Edition
+                        </span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-[#52525B] mt-1.5 leading-relaxed">
+                        Tabular Q-Learning powered by <strong class="font-semibold text-[#0A0A0A]">WeightedGraph</strong> (Non-Linear),
+                        <strong class="font-semibold text-[#0A0A0A]">CircularReplayBuffer</strong> (Linear), and
+                        <strong class="font-semibold text-[#0A0A0A]">TrajectoryStack</strong> (Linear)
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Header Controls -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Live BFS Path Status Badge -->
+                <div id="reachabilityBadge" class="px-3.5 py-2 rounded-lg text-xs font-mono font-medium border border-[#0A0A0A] bg-[#FAFAFA] text-[#0A0A0A] flex items-center gap-2">
+                    <span id="reachabilityDot" class="w-2 h-2 rounded-full bg-[#0A0A0A]"></span>
+                    <span id="reachabilityText">BFS Path: Verified</span>
+                </div>
+
+                <button id="btnHowItWorks" type="button" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#0A0A0A] transition cursor-pointer">
+                    How It Works
+                </button>
+
+                <button id="btnViewCode" type="button" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-[#0A0A0A] hover:bg-[#27272A] text-white border border-[#0A0A0A] transition cursor-pointer">
+                    View DSA Code
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN 2-COLUMN WORKSPACE ==================== -->
+    <main class="max-w-[1360px] mx-auto px-5 lg:px-10 py-6 lg:py-10 grid grid-cols-1 lg:grid-cols-12 gap-7 lg:gap-9 items-start">
+
+        <!-- ==================== LEFT COLUMN: INTERACTIVE GAME ARENA (5 COLS) ==================== -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            <div class="swiss-card p-6 flex flex-col gap-5">
+
+                <!-- Card Header & Level Presets -->
+                <div class="flex flex-col gap-3.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-base font-bold tracking-tight text-[#0A0A0A]">
+                                10×10 Gridworld Arena
+                            </h2>
+                            <p id="modeSubtitle" class="text-xs text-[#52525B] mt-0.5">
+                                Inspect Mode: Tap any tile to inspect its GraphNode &amp; edges
+                            </p>
+                        </div>
+                        <span class="font-mono text-xs px-2.5 py-1 rounded border border-[#E4E4E7] bg-[#FAFAFA] text-[#52525B]">
+                            100 Nodes
+                        </span>
+                    </div>
+
+                    <!-- Presets + Procedural Map Generator -->
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <button type="button" data-preset="default" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0A0A0A] text-white border border-[#0A0A0A] transition cursor-pointer">
+                            Default Arena
+                        </button>
+                        <button type="button" data-preset="wormhole" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#E4E4E7] transition cursor-pointer">
+                            Wormhole Shortcut
+                        </button>
+                        <button type="button" data-preset="conveyor" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#E4E4E7] transition cursor-pointer">
+                            Boost Conveyor
+                        </button>
+                        <button type="button" id="btnRandomizeMap" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#FAFAFA] hover:bg-[#0A0A0A] hover:text-white text-[#0A0A0A] border border-[#0A0A0A] transition cursor-pointer">
+                            ↻ Randomize Map
+                        </button>
+                        <button type="button" id="btnExportMap" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#E4E4E7] transition cursor-pointer">↓ Export</button>
+                        <button type="button" id="btnImportMap" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#E4E4E7] transition cursor-pointer">↑ Import</button>
+                        <input id="mapFileInput" type="file" accept="application/json,.json" class="hidden" />
+                    </div>
+                </div>
+
+                <!-- 3-MODE MOBILE-SAFE SEGMENTED TOGGLE -->
+                <div class="grid grid-cols-3 gap-1.5 p-1.5 rounded-xl bg-[#F4F4F5] border border-[#E4E4E7]" role="tablist" aria-label="Board Interaction Mode">
+                    <button type="button" data-boardmode="INSPECT" class="board-mode-btn py-2.5 px-2 rounded-lg text-xs font-semibold bg-[#0A0A0A] text-white transition cursor-pointer">
+                        Inspect Node
+                    </button>
+                    <button type="button" data-boardmode="EDIT" class="board-mode-btn py-2.5 px-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#0A0A0A] transition cursor-pointer">
+                        Edit Arena
+                    </button>
+                    <button type="button" data-boardmode="PLAY" class="board-mode-btn py-2.5 px-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#0A0A0A] transition cursor-pointer">
+                        Play Manually
+                    </button>
+                </div>
+
+                <!-- CONTEXTUAL PANEL A: TILE BRUSH PALETTE (Visible only in Edit Arena mode) -->
+                <div id="editPalettePanel" class="hidden flex-col gap-3 p-4 rounded-xl swiss-subcard animate-entry">
+                    <div class="flex items-center justify-between text-[11px] text-[#52525B]">
+                        <span class="font-semibold text-[#0A0A0A]">Select Tile Brush (Tap/Drag Grid)</span>
+                        <span class="font-mono">Tap Boost again to rotate</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button type="button" data-brush="WALL" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-semibold bg-[#0A0A0A] text-white border border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 rounded-sm border border-current wall-hatch shrink-0"></span>
+                            <span>Wall</span>
+                        </button>
+                        <button type="button" data-brush="TRAP" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 rounded-full border border-[#0A0A0A] flex items-center justify-center font-mono text-[9px] font-bold shrink-0">×</span>
+                            <span>Trap -50</span>
+                        </button>
+                        <button type="button" data-brush="BOOST" id="btnBrushBoost" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span id="boostBrushGlyph" class="w-4 h-4 rounded-sm border border-[#0A0A0A] flex items-center justify-center font-mono text-[10px] font-bold shrink-0">→</span>
+                            <span id="boostBrushLabel">Boost →</span>
+                        </button>
+                        <button type="button" data-brush="PORTAL_A" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 rounded-full border border-dashed border-[#0A0A0A] flex items-center justify-center font-mono text-[9px] font-bold shrink-0">A</span>
+                            <span>Portal A</span>
+                        </button>
+                        <button type="button" data-brush="PORTAL_B" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 rounded-full border border-dashed border-[#0A0A0A] flex items-center justify-center font-mono text-[9px] font-bold shrink-0">B</span>
+                            <span>Portal B</span>
+                        </button>
+                        <button type="button" data-brush="BONUS" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 flex items-center justify-center font-mono text-[11px] font-bold shrink-0">◇</span>
+                            <span>Bonus +25</span>
+                        </button>
+                        <button type="button" data-brush="START" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 rounded-sm bg-[#0A0A0A] text-white flex items-center justify-center font-mono text-[9px] font-bold shrink-0">S</span>
+                            <span>Set Start</span>
+                        </button>
+                        <button type="button" data-brush="GOAL" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 rounded-full border-2 border-[#0A0A0A] flex items-center justify-center font-mono text-[8px] font-bold shrink-0">G</span>
+                            <span>Goal +100</span>
+                        </button>
+                        <button type="button" data-brush="EMPTY" class="brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer">
+                            <span class="w-4 h-4 rounded-sm border border-dashed border-[#A1A1AA] shrink-0"></span>
+                            <span>Erase</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CONTEXTUAL PANEL B: MANUAL PLAY & HUMAN VS AI SCOREBOARD (Visible only in Play Manually mode) -->
+                <div id="manualPlayPanel" class="hidden flex-col gap-3.5 p-4 rounded-xl swiss-subcard animate-entry">
+                    <div class="grid grid-cols-3 gap-2.5 text-center">
+                        <div class="p-2.5 rounded-lg bg-white border border-[#E4E4E7]">
+                            <div class="text-[10px] uppercase tracking-wider font-semibold text-[#52525B]">Your Steps</div>
+                            <div id="humanStepsVal" class="font-mono text-base font-bold text-[#0A0A0A] mt-0.5">0</div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-white border border-[#E4E4E7]">
+                            <div class="text-[10px] uppercase tracking-wider font-semibold text-[#52525B]">Your Score</div>
+                            <div id="humanScoreVal" class="font-mono text-base font-bold text-[#0A0A0A] mt-0.5">0</div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-white border border-[#0A0A0A]">
+                            <div class="text-[10px] uppercase tracking-wider font-semibold text-[#52525B]">AI Optimal</div>
+                            <div id="aiBenchmarkVal" class="font-mono text-base font-bold text-[#0A0A0A] mt-0.5">—</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="text-xs text-[#52525B] leading-snug">
+                            Use <strong class="text-[#0A0A0A]">Arrow Keys / WASD</strong> or tap the D-Pad to reach <strong class="text-[#0A0A0A]">Goal (G)</strong>.
+                        </div>
+                        <button type="button" id="btnResetManualRun" class="px-3 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-[#0A0A0A] hover:text-white text-[#0A0A0A] border border-[#0A0A0A] transition shrink-0 cursor-pointer">
+                            Reset Run
+                        </button>
+                    </div>
+
+                    <!-- Tactile Monochrome D-Pad -->
+                    <div class="grid grid-cols-3 gap-2 max-w-[210px] mx-auto w-full pt-1">
+                        <div></div>
+                        <button type="button" data-dpad="UP" class="dpad-btn h-11 rounded-lg bg-white hover:bg-[#0A0A0A] hover:text-white active:bg-[#0A0A0A] active:text-white text-[#0A0A0A] border border-[#0A0A0A] font-mono text-base font-bold transition cursor-pointer">
+                            ↑
+                        </button>
+                        <div></div>
+                        <button type="button" data-dpad="LEFT" class="dpad-btn h-11 rounded-lg bg-white hover:bg-[#0A0A0A] hover:text-white active:bg-[#0A0A0A] active:text-white text-[#0A0A0A] border border-[#0A0A0A] font-mono text-base font-bold transition cursor-pointer">
+                            ←
+                        </button>
+                        <button type="button" data-dpad="DOWN" class="dpad-btn h-11 rounded-lg bg-white hover:bg-[#0A0A0A] hover:text-white active:bg-[#0A0A0A] active:text-white text-[#0A0A0A] border border-[#0A0A0A] font-mono text-base font-bold transition cursor-pointer">
+                            ↓
+                        </button>
+                        <button type="button" data-dpad="RIGHT" class="dpad-btn h-11 rounded-lg bg-white hover:bg-[#0A0A0A] hover:text-white active:bg-[#0A0A0A] active:text-white text-[#0A0A0A] border border-[#0A0A0A] font-mono text-base font-bold transition cursor-pointer">
+                            →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 10x10 FLUID SQUARE CANVAS WITH COORDINATE RULERS -->
+                <div class="w-full max-w-[500px] mx-auto">
+                    <div class="relative w-full aspect-square bg-white">
+                        <canvas id="gridCanvas"></canvas>
+                    </div>
+                    <!-- Live Phase Status Strip -->
+                    <div id="phaseBanner" class="mt-3 px-3.5 py-2.5 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] font-mono text-xs text-[#0A0A0A] flex items-center justify-between gap-2">
+                        <span id="phaseText" class="truncate">READY • SELECT TRAIN OR WATCH EPISODE</span>
+                        <span id="phaseStepBadge" class="text-[11px] text-[#52525B] shrink-0">α=0.30 γ=0.92</span>
+                    </div>
+                </div>
+
+                <!-- Tile Legend Strip -->
+                <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3.5 py-2.5 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] text-[11px] text-[#52525B]">
+                    <span class="flex items-center gap-1.5"><strong class="font-mono text-[#0A0A0A]">S</strong> Start</span>
+                    <span class="flex items-center gap-1.5"><strong class="font-mono text-[#0A0A0A]">G</strong> Goal (+100)</span>
+                    <span class="flex items-center gap-1.5"><strong class="font-mono text-[#0A0A0A]">×</strong> Trap (-50)</span>
+                    <span class="flex items-center gap-1.5"><strong class="font-mono text-[#0A0A0A]">→</strong> Boost (0)</span>
+                    <span class="flex items-center gap-1.5"><strong class="font-mono text-[#0A0A0A]">A/B</strong> Portal (0)</span>
+                    <span class="flex items-center gap-1.5"><strong class="font-mono text-[#0A0A0A]">◇</strong> Bonus (+25)</span>
+                </div>
+
+                <!-- Heatmap & Policy Arrows Checkboxes -->
+                <div class="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-[#E4E4E7] bg-white text-xs">
+                    <label class="flex items-center gap-2 cursor-pointer select-none font-medium text-[#0A0A0A]">
+                        <input id="toggleHeatmap" type="checkbox" checked class="w-4 h-4 rounded cursor-pointer" />
+                        <span>Show Q-Value Heatmap</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none font-medium text-[#0A0A0A]">
+                        <input id="toggleArrows" type="checkbox" checked class="w-4 h-4 rounded cursor-pointer" />
+                        <span>Show Learned Policy Arrows</span>
+                    </label>
+                </div>
+
+                <!-- AI Training & Playback Controls -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <button type="button" id="btnWatchEpisode" class="px-3 py-2.5 rounded-lg text-xs font-semibold bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#0A0A0A] transition cursor-pointer">
+                        ▶ Watch 1 Episode
+                    </button>
+
+                    <button type="button" id="btnTrain100" class="px-3 py-2.5 rounded-lg text-xs font-semibold bg-[#0A0A0A] hover:bg-[#27272A] text-white border border-[#0A0A0A] transition cursor-pointer">
+                        Train 100 Eps
+                    </button>
+
+                    <button type="button" id="btnAutoTrain" class="col-span-2 sm:col-span-1 px-3 py-2.5 rounded-lg text-xs font-semibold bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#0A0A0A] transition flex items-center justify-center gap-2 cursor-pointer">
+                        <span id="autoTrainDot" class="w-2 h-2 rounded-full border border-[#0A0A0A] bg-white"></span>
+                        <span id="autoTrainLabel">Auto-Train: OFF</span>
+                    </button>
+
+                    <button type="button" id="btnOptimalRun" class="col-span-2 px-3 py-2.5 rounded-lg text-xs font-semibold bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#0A0A0A] transition cursor-pointer">
+                        ★ Run Optimal Policy
+                    </button>
+
+                    <button type="button" id="btnResetBrain" class="px-3 py-2.5 rounded-lg text-xs font-medium bg-[#FAFAFA] hover:bg-[#F4F4F5] text-[#52525B] hover:text-[#0A0A0A] border border-[#E4E4E7] transition cursor-pointer">
+                        Reset AI Brain
+                    </button>
+                </div>
+
+                <!-- Speed Slider -->
+                <div class="flex items-center justify-between gap-4 px-3.5 py-2.5 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] text-xs">
+                    <span class="font-medium text-[#52525B] whitespace-nowrap">Simulation Speed</span>
+                    <input id="speedSlider" type="range" min="1" max="100" value="60" class="w-full cursor-pointer" />
+                    <span id="speedValue" class="font-mono font-semibold text-[#0A0A0A] w-10 text-right">60%</span>
+                </div>
+                <!-- Hyperparameters -->
+                <div class="flex flex-col gap-3 px-3.5 py-3 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA]">
+                    <div class="flex items-center justify-between gap-4 text-xs">
+                        <span class="font-medium text-[#52525B] w-28 whitespace-nowrap">Learning rate α</span>
+                        <input id="sliderAlpha" type="range" min="0.01" max="1" step="0.01" value="0.3" class="w-full cursor-pointer" />
+                        <span id="valAlpha" class="font-mono font-semibold text-[#0A0A0A] w-12 text-right">0.30</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4 text-xs">
+                        <span class="font-medium text-[#52525B] w-28 whitespace-nowrap">Discount γ</span>
+                        <input id="sliderGamma" type="range" min="0.5" max="0.99" step="0.01" value="0.92" class="w-full cursor-pointer" />
+                        <span id="valGamma" class="font-mono font-semibold text-[#0A0A0A] w-12 text-right">0.92</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4 text-xs">
+                        <span class="font-medium text-[#52525B] w-28 whitespace-nowrap">ε decay</span>
+                        <input id="sliderDecay" type="range" min="0.9" max="0.999" step="0.001" value="0.985" class="w-full cursor-pointer" />
+                        <span id="valDecay" class="font-mono font-semibold text-[#0A0A0A] w-12 text-right">0.985</span>
+                    </div>
+                    <label class="flex items-center gap-2 text-xs font-medium text-[#0A0A0A] cursor-pointer">
+                        <input id="toggleReplay" type="checkbox" checked />
+                        Experience Replay (4 samples / episode from Ring Buffer)
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== RIGHT COLUMN: TELEMETRY & 3 DATA STRUCTURES (7 COLS) ==================== -->
+        <section class="lg:col-span-7 flex flex-col gap-7">
+
+            <!-- 1. FOUR TELEMETRY STAT CARDS -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="swiss-card p-5">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-[#52525B]">Episode #</div>
+                    <div id="statEpisode" class="font-mono text-2xl font-bold text-[#0A0A0A] mt-1.5">0</div>
+                    <div class="text-xs text-[#52525B] mt-1">Completed runs</div>
+                </div>
+
+                <div class="swiss-card p-5">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-[#52525B]">Exploration (ε)</div>
+                    <div id="statEpsilon" class="font-mono text-2xl font-bold text-[#0A0A0A] mt-1.5">100.0%</div>
+                    <div class="text-xs text-[#52525B] mt-1">Random vs Greedy</div>
+                </div>
+
+                <div class="swiss-card p-5">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-[#52525B]">Last Reward</div>
+                    <div id="statReward" class="font-mono text-2xl font-bold text-[#0A0A0A] mt-1.5">0</div>
+                    <div id="statOutcome" class="text-xs text-[#52525B] mt-1 truncate">Awaiting run</div>
+                </div>
+
+                <div class="swiss-card p-5">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-[#52525B]">Goal Win Rate</div>
+                    <div id="statWinRate" class="font-mono text-2xl font-bold text-[#0A0A0A] mt-1.5">0.0%</div>
+                    <div id="statWinCount" class="text-xs text-[#52525B] mt-1">0 / 0 goals</div>
+                </div>
+            </div>
+
+            <!-- LEARNING CURVE -->
+            <div class="swiss-card p-5">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-[#52525B]">Learning Curve</div>
+                    <div class="flex items-center gap-3 text-[11px] font-mono text-[#52525B]">
+                        <span><span class="inline-block w-4 border-t-2 border-[#0A0A0A] align-middle mr-1"></span>Win rate</span>
+                        <span><span class="inline-block w-4 border-t-2 border-dashed border-[#A1A1AA] align-middle mr-1"></span>Avg reward</span>
+                    </div>
+                </div>
+                <canvas id="lcCanvas" style="width:100%;height:140px;display:block"></canvas>
+                <div class="text-[11px] text-[#52525B] mt-2">25-episode moving average · last 1000 episodes</div>
+            </div>
+
+            <!-- 2. LINEAR DATA STRUCTURE 1: CIRCULAR REPLAY BUFFER (CAPACITY = 10) -->
+            <div class="swiss-card p-6 flex flex-col gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <span class="px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider border border-[#0A0A0A] rounded bg-[#FAFAFA] text-[#0A0A0A]">
+                                Linear 1 • Ring Queue
+                            </span>
+                            <h3 class="text-base font-bold text-[#0A0A0A]">CircularReplayBuffer (Capacity = 10)</h3>
+                        </div>
+                        <p class="text-xs text-[#52525B] mt-1">
+                            Fixed 10-slot circular queue advancing in <span class="font-mono text-[#0A0A0A]">O(1)</span> via <span class="font-mono text-[#0A0A0A]">(tail + 1) % 10</span>
+                        </p>
+                    </div>
+
+                    <!-- Pointer Badges -->
+                    <div class="flex flex-wrap items-center gap-2 font-mono text-xs">
+                        <span class="px-2.5 py-1 rounded border border-[#0A0A0A] bg-white text-[#0A0A0A]">
+                            HEAD: <strong id="ringHeadVal">0</strong>
+                        </span>
+                        <span class="px-2.5 py-1 rounded border border-[#0A0A0A] bg-[#0A0A0A] text-white">
+                            TAIL: <strong id="ringTailVal">0</strong>
+                        </span>
+                        <span class="px-2.5 py-1 rounded border border-[#E4E4E7] bg-[#FAFAFA] text-[#52525B]">
+                            COUNT: <strong id="ringCountVal" class="text-[#0A0A0A]">0/10</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 10 Fixed Indexed Memory Slots -->
+                <div id="ringBufferGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- 3. SPLIT ROW: TRAJECTORY STACK (LINEAR 2) & WEIGHTED GRAPH INSPECTOR (NON-LINEAR) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-7">
+
+                <!-- LINEAR DATA STRUCTURE 2: LIFO TRAJECTORY STACK -->
+                <div class="md:col-span-6 swiss-card p-6 flex flex-col gap-4">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider border border-[#0A0A0A] rounded bg-[#FAFAFA] text-[#0A0A0A]">
+                                    Linear 2 • LIFO Stack
+                                </span>
+                            </div>
+                            <h3 class="text-base font-bold text-[#0A0A0A] mt-2">TrajectoryStack</h3>
+                            <p class="text-xs text-[#52525B] mt-1">
+                                Linked <span class="font-mono text-[#0A0A0A]">StackNode.next</span> list popped LIFO to backpropagate Bellman updates
+                            </p>
+                        </div>
+                        <span id="stackSizeBadge" class="px-2.5 py-1 rounded font-mono text-xs font-semibold border border-[#0A0A0A] bg-[#FAFAFA] text-[#0A0A0A] shrink-0">
+                            SIZE: 0
+                        </span>
+                    </div>
+
+                    <!-- Stack Status Strip -->
+                    <div id="stackOperationStatus" class="px-3 py-2 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] font-mono text-xs text-[#52525B] flex items-center justify-between">
+                        <span>TOP → NULL</span>
+                        <span class="font-semibold text-[#0A0A0A]">IDLE</span>
+                    </div>
+
+                    <!-- Linked Stack Nodes Container -->
+                    <div id="stackContainer" class="flex-1 max-h-[340px] overflow-y-auto pr-1 flex flex-col gap-2">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- NON-LINEAR DATA STRUCTURE: WEIGHTED GRAPH VERTEX & EDGE INSPECTOR -->
+                <div class="md:col-span-6 swiss-card p-6 flex flex-col gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wider border border-[#0A0A0A] rounded bg-[#0A0A0A] text-white">
+                                Non-Linear • Graph
+                            </span>
+                        </div>
+                        <h3 class="text-base font-bold text-[#0A0A0A] mt-2">WeightedGraph Inspector</h3>
+                        <p class="text-xs text-[#52525B] mt-1">
+                            Inspecting <span class="font-mono text-[#0A0A0A]">GraphNode</span> &amp; pointer-linked <span class="font-mono text-[#0A0A0A]">GraphEdge</span> transitions
+                        </p>
+                    </div>
+
+                    <!-- Selected Vertex Summary -->
+                    <div class="p-3.5 rounded-xl swiss-subcard flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-[11px] font-semibold uppercase tracking-wider text-[#52525B]">Selected Vertex</div>
+                            <div id="inspectCoord" class="font-mono text-base font-bold text-[#0A0A0A] mt-0.5">
+                                GraphNode (0, 0)
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span id="inspectTypeBadge" class="inline-block px-2.5 py-0.5 rounded font-mono text-xs font-semibold border border-[#0A0A0A] bg-[#0A0A0A] text-white">
+                                START
+                            </span>
+                            <div id="inspectMaxQ" class="font-mono text-xs text-[#52525B] mt-1">
+                                Max Q: <strong class="text-[#0A0A0A]">0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Adjacency Linked List Header -->
+                    <div class="flex items-center justify-between font-mono text-[11px] text-[#52525B]">
+                        <span>node.edgesHead (Linked List)</span>
+                        <span>Reward / Learned Q</span>
+                    </div>
+
+                    <!-- Outgoing Directed Edges -->
+                    <div id="inspectEdgesList" class="flex-1 flex flex-col gap-2.5">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ==================== MODAL 1: VIEW DSA CODE ==================== -->
+    <div id="codeModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 sm:p-6">
+        <div class="bg-white border border-[#0A0A0A] rounded-2xl max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-5 border-b border-[#0A0A0A] flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold text-[#0A0A0A]">
+                        From-Scratch Data Structures Source Code
+                    </h2>
+                    <p class="text-xs text-[#52525B] mt-1">
+                        Implemented with explicit pointers (<span class="font-mono text-[#0A0A0A]">.next</span>, <span class="font-mono text-[#0A0A0A]">head/tail</span>, <span class="font-mono text-[#0A0A0A]">edgesHead</span>) — Zero built-in array mutators
+                    </p>
+                </div>
+                <div class="flex items-center gap-2.5">
+                    <button type="button" id="btnCopyCode" class="px-3.5 py-2 rounded-lg text-xs font-semibold bg-[#0A0A0A] hover:bg-[#27272A] text-white transition cursor-pointer">
+                        Copy Code
+                    </button>
+                    <button type="button" id="btnCloseCodeModal" class="w-9 h-9 rounded-lg border border-[#0A0A0A] bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] flex items-center justify-center font-mono text-sm font-bold cursor-pointer" aria-label="Close modal">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Code Structure Tabs -->
+            <div class="px-6 pt-3 flex flex-wrap gap-2 border-b border-[#E4E4E7] bg-[#FAFAFA]">
+                <button type="button" data-codetab="graph" class="code-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-mono font-semibold bg-white text-[#0A0A0A] border-t border-x border-[#0A0A0A] -mb-px cursor-pointer">
+                    1. WeightedGraph (Non-Linear)
+                </button>
+                <button type="button" data-codetab="ring" class="code-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-mono font-medium text-[#52525B] hover:text-[#0A0A0A] cursor-pointer">
+                    2. CircularReplayBuffer (Linear 1)
+                </button>
+                <button type="button" data-codetab="stack" class="code-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-mono font-medium text-[#52525B] hover:text-[#0A0A0A] cursor-pointer">
+                    3. TrajectoryStack (Linear 2)
+                </button>
+            </div>
+
+            <!-- Code Display -->
+            <div class="p-6 overflow-y-auto flex-1 bg-white">
+                <pre id="dsaCodeDisplay" class="font-mono text-xs sm:text-[13px] leading-relaxed text-[#0A0A0A] whitespace-pre overflow-x-auto"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: HOW IT WORKS ==================== -->
+    <div id="helpModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 sm:p-6">
+        <div class="bg-white border border-[#0A0A0A] rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-5 border-b border-[#0A0A0A] flex items-center justify-between gap-4">
+                <h2 class="text-base sm:text-lg font-bold text-[#0A0A0A]">
+                    Architecture &amp; Tabular Q-Learning Guide
+                </h2>
+                <button type="button" id="btnCloseHelpModal" class="w-9 h-9 rounded-lg border border-[#0A0A0A] bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] flex items-center justify-center font-mono text-sm font-bold cursor-pointer" aria-label="Close modal">
+                    ✕
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex flex-col gap-4 text-xs sm:text-sm text-[#52525B] leading-relaxed">
+                <div class="p-4 rounded-xl border border-[#0A0A0A] bg-[#FAFAFA]">
+                    <h3 class="font-bold text-[#0A0A0A] mb-1">1. Non-Linear: WeightedGraph (Arena &amp; Special Tiles)</h3>
+                    <p>
+                        Every cell <code class="font-mono text-[#0A0A0A]">(row, col)</code> is a <code class="font-mono text-[#0A0A0A]">GraphNode</code> connected via a singly-linked list of directed <code class="font-mono text-[#0A0A0A]">GraphEdge</code> pointers.
+                        <strong class="text-[#0A0A0A]">Boost Pads (→)</strong> create asymmetric 0-cost edges that slide the agent forward;
+                        <strong class="text-[#0A0A0A]">Portals (A ↔ B)</strong> create non-adjacent warp edges across the map;
+                        and <code class="font-mono text-[#0A0A0A]">checkPathExistsBFS()</code> uses a linked <code class="font-mono text-[#0A0A0A]">BFSQueue</code> to verify solvability.
+                    </p>
+                </div>
+
+                <div class="p-4 rounded-xl border border-[#E4E4E7] bg-white">
+                    <h3 class="font-bold text-[#0A0A0A] mb-1">2. Linear 1: CircularReplayBuffer (Fixed Ring Queue)</h3>
+                    <p>
+                        A pre-allocated 10-slot circular queue managed by <code class="font-mono text-[#0A0A0A]">head</code>, <code class="font-mono text-[#0A0A0A]">tail</code>, and <code class="font-mono text-[#0A0A0A]">count</code> pointers. New state transitions insert in <code class="font-mono text-[#0A0A0A]">O(1)</code> time using <code class="font-mono text-[#0A0A0A]">(tail + 1) % 10</code>, overwriting the oldest experience automatically when full.
+                    </p>
+                </div>
+
+                <div class="p-4 rounded-xl border border-[#E4E4E7] bg-white">
+                    <h3 class="font-bold text-[#0A0A0A] mb-1">3. Linear 2: TrajectoryStack (LIFO Bellman Backpropagation)</h3>
+                    <p>
+                        During an episode, each step is pushed onto a linked-list <code class="font-mono text-[#0A0A0A]">TrajectoryStack</code>. When the agent hits a Trap (<code class="font-mono text-[#0A0A0A]">-50</code>) or Goal (<code class="font-mono text-[#0A0A0A]">+100</code>), steps are popped in reverse LIFO order to update Q-values along the exact path taken:
+                    </p>
+                    <div class="mt-2.5 p-2.5 rounded-lg border border-[#0A0A0A] bg-[#FAFAFA] font-mono text-xs text-[#0A0A0A] text-center">
+                        Q(s, a) = Q(s, a) + α · [ R + γ · max Q(s', a') − Q(s, a) ]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== COMPLETE APPLICATION SCRIPT ==================== -->
+    <script>
+        "use strict";
+
+        /* ============================================================================
+           SECTION 1: FROM-SCRATCH DATA STRUCTURES (ZERO BUILT-IN ARRAY MUTATORS)
+           ============================================================================ */
+
+        /**
+         * NON-LINEAR DATA STRUCTURE: Weighted Directed Graph
+         * GraphEdge represents a directed transition in a vertex's singly-linked adjacency list.
+         */
+        let curMaskKey = '';      // bonus-collection state (part of the RL state)
+        let stepMaskBefore = '';
+        let collectedList = [];
+
+        class GraphEdge {
+            constructor(dir, targetNode, baseReward, isPortal = false, isBoost = false) {
+                this.dir = dir;               // 'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
+                this.targetNode = targetNode; // Pointer to destination GraphNode
+                this.baseReward = baseReward; // Immediate transition reward (-1, 0, -50, +100)
+                this.qMap = {};               // Q(s, a) per bonus-collection state (s = tile + bonuses taken)
+                this.isPortal = isPortal;     // True if transition warps via Portal A <-> B
+                this.isBoost = isBoost;       // True if transition slides via Boost Pad
+                this.next = null;             // Pointer to next GraphEdge in linked list
+            }
+        }
+
+        /**
+         * GraphNode represents a single vertex (row, col) on the 10x10 Gridworld.
+         */
+        Object.defineProperty(GraphEdge.prototype, 'qValue', {
+            get() { return this.qMap[curMaskKey] || 0; },
+            set(v) { this.qMap[curMaskKey] = v; }
+        });
+
+        class GraphNode {
+            constructor(row, col, type = 'EMPTY', boostDir = 'RIGHT') {
+                this.row = row;
+                this.col = col;
+                this.type = type;         // 'EMPTY' | 'WALL' | 'TRAP' | 'BOOST' | 'PORTAL_A' | 'PORTAL_B' | 'BONUS' | 'START' | 'GOAL'
+                this.boostDir = boostDir; // 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' (used when type === 'BOOST')
+                this.edgesHead = null;    // Head pointer of outgoing GraphEdge linked list
+            }
+
+            /**
+             * Appends a directed GraphEdge to this vertex's adjacency linked list.
+             */
+            addEdge(dir, targetNode, baseReward, isPortal = false, isBoost = false) {
+                const newEdge = new GraphEdge(dir, targetNode, baseReward, isPortal, isBoost);
+                if (this.edgesHead === null) {
+                    this.edgesHead = newEdge;
+                    return;
+                }
+                let curr = this.edgesHead;
+                while (curr.next !== null) {
+                    curr = curr.next;
+                }
+                curr.next = newEdge;
+            }
+
+            /**
+             * Clears outgoing adjacency list.
+             */
+            clearEdges() {
+                this.edgesHead = null;
+            }
+
+            /**
+             * Finds outgoing GraphEdge matching direction string.
+             */
+            getEdge(dir) {
+                let curr = this.edgesHead;
+                while (curr !== null) {
+                    if (curr.dir === dir) return curr;
+                    curr = curr.next;
+                }
+                return null;
+            }
+
+            /**
+             * Traverses outgoing GraphEdges to return max_a Q(s, a).
+             */
+            getMaxQ() {
+                if (this.edgesHead === null) return 0.0;
+                let maxVal = -Infinity;
+                let curr = this.edgesHead;
+                while (curr !== null) {
+                    if (curr.qValue > maxVal) {
+                        maxVal = curr.qValue;
+                    }
+                    curr = curr.next;
+                }
+                return maxVal === -Infinity ? 0.0 : maxVal;
+            }
+
+            /**
+             * Returns the outgoing GraphEdge with the highest Q-value (random tie-break).
+             */
+            getBestEdge() {
+                if (this.edgesHead === null) return null;
+                const maxVal = this.getMaxQ();
+                let tieCount = 0;
+
+                let curr = this.edgesHead;
+                while (curr !== null) {
+                    if (Math.abs(curr.qValue - maxVal) < 1e-6) {
+                        tieCount++;
+                    }
+                    curr = curr.next;
+                }
+
+                const pickIndex = Math.floor(Math.random() * tieCount);
+                let seen = 0;
+                curr = this.edgesHead;
+                while (curr !== null) {
+                    if (Math.abs(curr.qValue - maxVal) < 1e-6) {
+                        if (seen === pickIndex) return curr;
+                        seen++;
+                    }
+                    curr = curr.next;
+                }
+                return this.edgesHead;
+            }
+        }
+
+        /**
+         * Custom Linked Queue (BFSNode / BFSQueue) used exclusively by checkPathExistsBFS().
+         */
+        class BFSNode {
+            constructor(graphNode) {
+                this.graphNode = graphNode;
+                this.next = null;
+            }
+        }
+
+        class BFSQueue {
+            constructor() {
+                this.front = null;
+                this.rear = null;
+            }
+
+            enqueue(graphNode) {
+                const node = new BFSNode(graphNode);
+                if (this.rear === null) {
+                    this.front = node;
+                    this.rear = node;
+                } else {
+                    this.rear.next = node;
+                    this.rear = node;
+                }
+            }
+
+            dequeue() {
+                if (this.front === null) return null;
+                const removed = this.front;
+                this.front = this.front.next;
+                if (this.front === null) {
+                    this.rear = null;
+                }
+                return removed.graphNode;
+            }
+
+            isEmpty() {
+                return this.front === null;
+            }
+        }
+
+        /**
+         * NON-LINEAR GRAPH CONTAINER: WeightedGraph
+         */
+        class WeightedGraph {
+            constructor(rows = 10, cols = 10) {
+                this.rows = rows;
+                this.cols = cols;
+                this.nodes = new Array(rows);
+                for (let r = 0; r < rows; r++) {
+                    this.nodes[r] = new Array(cols);
+                    for (let c = 0; c < cols; c++) {
+                        this.nodes[r][c] = new GraphNode(r, c, 'EMPTY', 'RIGHT');
+                    }
+                }
+                this.startNode = this.nodes[0][0];
+                this.goalNode = this.nodes[rows - 1][cols - 1];
+                this.startNode.type = 'START';
+                this.goalNode.type = 'GOAL';
+                this.portalANode = null;
+                this.portalBNode = null;
+                this.rebuildEdges(true);
+            }
+
+            getNode(r, c) {
+                if (r < 0 || r >= this.rows || c < 0 || c >= this.cols) return null;
+                return this.nodes[r][c];
+            }
+
+            getDirectionDelta(dir) {
+                if (dir === 'UP') return { dr: -1, dc: 0 };
+                if (dir === 'DOWN') return { dr: 1, dc: 0 };
+                if (dir === 'LEFT') return { dr: 0, dc: -1 };
+                return { dr: 0, dc: 1 };
+            }
+
+            /**
+             * Rebuilds all directed GraphEdge adjacency lists across the 10x10 grid,
+             * resolving Boost Pad slides and Portal A <-> B warps directly in graph edges.
+             */
+            rebuildEdges(resetQ = false) {
+                // Locate active Portals A and B
+                this.portalANode = null;
+                this.portalBNode = null;
+                for (let r = 0; r < this.rows; r++) {
+                    for (let c = 0; c < this.cols; c++) {
+                        if (this.nodes[r][c].type === 'PORTAL_A') this.portalANode = this.nodes[r][c];
+                        if (this.nodes[r][c].type === 'PORTAL_B') this.portalBNode = this.nodes[r][c];
+                    }
+                }
+
+                const dirs = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+
+                for (let r = 0; r < this.rows; r++) {
+                    for (let c = 0; c < this.cols; c++) {
+                        const node = this.nodes[r][c];
+
+                        // Preserve existing learned Q-values when editing tiles
+                        const savedQ = { UP: {}, DOWN: {}, LEFT: {}, RIGHT: {} };
+                        if (!resetQ) {
+                            let e = node.edgesHead;
+                            while (e !== null) {
+                                savedQ[e.dir] = e.qMap;
+                                e = e.next;
+                            }
+                        }
+
+                        node.clearEdges();
+
+                        // Walls and Terminal States emit no outgoing transitions
+                        if (node.type === 'WALL' || node.type === 'GOAL' || node.type === 'TRAP') {
+                            continue;
+                        }
+
+                        for (let d = 0; d < 4; d++) {
+                            const dir = dirs[d];
+                            const delta = this.getDirectionDelta(dir);
+                            const nr = r + delta.dr;
+                            const nc = c + delta.dc;
+                            const neighbor = this.getNode(nr, nc);
+
+                            if (neighbor === null || neighbor.type === 'WALL') {
+                                continue;
+                            }
+
+                            let finalTarget = neighbor;
+                            let baseReward = -1;
+                            let isPortal = false;
+                            let isBoost = false;
+
+                            // Mechanic 1: One-Way Boost Pad slides 1 extra tile in boostDir for 0 step cost
+                            if (neighbor.type === 'BOOST') {
+                                isBoost = true;
+                                baseReward = 0;
+                                const bDelta = this.getDirectionDelta(neighbor.boostDir);
+                                const slideNode = this.getNode(neighbor.row + bDelta.dr, neighbor.col + bDelta.dc);
+                                if (slideNode !== null && slideNode.type !== 'WALL') {
+                                    finalTarget = slideNode;
+                                }
+                            }
+
+                            // Mechanic 2: Paired Wormhole Portals warp immediately across the board for 0 cost
+                            if (finalTarget.type === 'PORTAL_A' && this.portalBNode !== null) {
+                                finalTarget = this.portalBNode;
+                                baseReward = 0;
+                                isPortal = true;
+                            } else if (finalTarget.type === 'PORTAL_B' && this.portalANode !== null) {
+                                finalTarget = this.portalANode;
+                                baseReward = 0;
+                                isPortal = true;
+                            }
+
+                            // Terminal destination reward overrides
+                            if (finalTarget.type === 'GOAL') {
+                                baseReward = 100;
+                            } else if (finalTarget.type === 'TRAP') {
+                                baseReward = -50;
+                            }
+
+                            node.addEdge(dir, finalTarget, baseReward, isPortal, isBoost);
+                            if (!resetQ) {
+                                const createdEdge = node.getEdge(dir);
+                                if (createdEdge !== null) {
+                                    createdEdge.qMap = savedQ[dir];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            resetAllQValues() {
+                for (let r = 0; r < this.rows; r++) {
+                    for (let c = 0; c < this.cols; c++) {
+                        let edge = this.nodes[r][c].edgesHead;
+                        while (edge !== null) {
+                            edge.qMap = {};
+                            edge = edge.next;
+                        }
+                    }
+                }
+            }
+
+            /**
+             * Pointer-based Breadth-First Search verifying Start -> Goal reachability.
+             */
+            checkPathExistsBFS() {
+                if (this.startNode === null || this.goalNode === null) return false;
+
+                const visited = new Array(this.rows);
+                for (let r = 0; r < this.rows; r++) {
+                    visited[r] = new Array(this.cols);
+                    for (let c = 0; c < this.cols; c++) {
+                        visited[r][c] = false;
+                    }
+                }
+
+                const queue = new BFSQueue();
+                queue.enqueue(this.startNode);
+                visited[this.startNode.row][this.startNode.col] = true;
+
+                while (!queue.isEmpty()) {
+                    const curr = queue.dequeue();
+                    if (curr === this.goalNode) return true;
+                    if (curr.type === 'TRAP') continue;
+
+                    let edge = curr.edgesHead;
+                    while (edge !== null) {
+                        const target = edge.targetNode;
+                        if (target.type !== 'TRAP' && !visited[target.row][target.col]) {
+                            visited[target.row][target.col] = true;
+                            queue.enqueue(target);
+                        }
+                        edge = edge.next;
+                    }
+                }
+                return false;
+            }
+        }
+
+        /**
+         * LINEAR DATA STRUCTURE 1: CircularReplayBuffer (Fixed Capacity = 10)
+         * Pre-allocated circular array managed via head, tail, and count pointers.
+         */
+        class CircularReplayBuffer {
+            constructor(capacity = 10) {
+                this.capacity = capacity;
+                this.slots = new Array(capacity);
+                for (let i = 0; i < capacity; i++) {
+                    this.slots[i] = null;
+                }
+                this.head = 0;
+                this.tail = 0;
+                this.count = 0;
+                this.lastWrittenIndex = -1;
+            }
+
+            /**
+             * Enqueues a transition record in O(1) time with circular wrap-around.
+             */
+            enqueue(record) {
+                record.maskBefore = stepMaskBefore;
+                record.maskAfter = curMaskKey;
+                this.slots[this.tail] = record;
+                this.lastWrittenIndex = this.tail;
+
+                if (this.count === this.capacity) {
+                    this.head = (this.head + 1) % this.capacity;
+                } else {
+                    this.count++;
+                }
+
+                this.tail = (this.tail + 1) % this.capacity;
+            }
+
+            /** Samples n stored AI transitions (uniform, with replacement) for experience replay. */
+            sampleRecords(n) {
+                const pool = [];
+                for (let i = 0; i < this.capacity; i++) {
+                    const r = this.slots[i];
+                    if (r !== null && typeof r.episode === 'number') pool.push(r);
+                }
+                const out = [];
+                if (pool.length === 0) return out;
+                for (let k = 0; k < n; k++) out.push(pool[Math.floor(Math.random() * pool.length)]);
+                return out;
+            }
+
+            clear() {
+                for (let i = 0; i < this.capacity; i++) {
+                    this.slots[i] = null;
+                }
+                this.head = 0;
+                this.tail = 0;
+                this.count = 0;
+                this.lastWrittenIndex = -1;
+            }
+        }
+
+        /**
+         * LINEAR DATA STRUCTURE 2: TrajectoryStack (LIFO Singly-Linked List)
+         */
+        class StackNode {
+            constructor(node, edge, reward, stepNum) {
+                this.node = node;       // Origin GraphNode
+                this.edge = edge;       // Traversed GraphEdge
+                this.reward = reward;   // Actual reward received on this transition
+                this.stepNum = stepNum; // Sequential step index
+                this.next = null;       // Pointer to next StackNode below
+            }
+        }
+
+        class TrajectoryStack {
+            constructor() {
+                this.top = null;
+                this.size = 0;
+            }
+
+            /**
+             * Pushes a transition onto the TOP of the stack in O(1) time.
+             */
+            push(node, edge, reward, stepNum) {
+                const newNode = new StackNode(node, edge, reward, stepNum);
+                newNode.maskBefore = stepMaskBefore;
+                newNode.maskAfter = curMaskKey;
+                newNode.next = this.top;
+                this.top = newNode;
+                this.size++;
+                return newNode;
+            }
+
+            /**
+             * Pops and returns the TOP StackNode in O(1) time for LIFO backpropagation.
+             */
+            pop() {
+                if (this.top === null) return null;
+                const popped = this.top;
+                this.top = this.top.next;
+                popped.next = null;
+                this.size--;
+                return popped;
+            }
+
+            clear() {
+                while (this.top !== null) {
+                    this.pop();
+                }
+            }
+        }
+
+        /* ============================================================================
+           SECTION 2: CLEAN DSA SOURCE CODE SNIPPETS FOR PRESENTATION MODAL
+           ============================================================================ */
+        const DSA_CODE_TABS = {
+            graph: `// NON-LINEAR: WeightedGraph with Boost Pads, Wormhole Portals & BFS
+class GraphEdge {
+    constructor(dir, targetNode, baseReward, isPortal = false, isBoost = false) {
+        this.dir = dir;               // 'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
+        this.targetNode = targetNode; // Pointer to destination GraphNode
+        this.baseReward = baseReward; // -1 step, 0 boost/portal, -50 trap, +100 goal
+        this.qValue = 0.0;            // Learned Q(s, a) value
+        this.isPortal = isPortal;
+        this.isBoost = isBoost;
+        this.next = null;             // Pointer to next outgoing edge
+    }
+}
+
+class GraphNode {
+    constructor(row, col, type = 'EMPTY', boostDir = 'RIGHT') {
+        this.row = row;
+        this.col = col;
+        this.type = type;
+        this.boostDir = boostDir;
+        this.edgesHead = null; // Head of pointer-linked GraphEdge list
+    }
+
+    addEdge(dir, targetNode, baseReward, isPortal = false, isBoost = false) {
+        const edge = new GraphEdge(dir, targetNode, baseReward, isPortal, isBoost);
+        if (this.edgesHead === null) {
+            this.edgesHead = edge;
+            return;
+        }
+        let curr = this.edgesHead;
+        while (curr.next !== null) curr = curr.next;
+        curr.next = edge;
+    }
+
+    getMaxQ() {
+        if (this.edgesHead === null) return 0.0;
+        let maxVal = -Infinity;
+        let curr = this.edgesHead;
+        while (curr !== null) {
+            if (curr.qValue > maxVal) maxVal = curr.qValue;
+            curr = curr.next;
+        }
+        return maxVal;
+    }
+}`,
+            ring: `// LINEAR 1: CircularReplayBuffer (Fixed Capacity = 10)
+class CircularReplayBuffer {
+    constructor(capacity = 10) {
+        this.capacity = capacity;
+        this.slots = new Array(capacity); // Fixed pre-allocated slots
+        for (let i = 0; i < capacity; i++) this.slots[i] = null;
+        this.head = 0;  // Oldest transition pointer
+        this.tail = 0;  // Next insertion pointer
+        this.count = 0; // Active records count
+    }
+
+    enqueue(record) {
+        // O(1) write at tail pointer
+        this.slots[this.tail] = record;
+
+        if (this.count === this.capacity) {
+            // Buffer full: advance head pointer to drop oldest entry
+            this.head = (this.head + 1) % this.capacity;
+        } else {
+            this.count++;
+        }
+
+        // Circular wrap-around via modulo arithmetic
+        this.tail = (this.tail + 1) % this.capacity;
+    }
+}`,
+            stack: `// LINEAR 2: TrajectoryStack (LIFO Linked List for Bellman Backprop)
+class StackNode {
+    constructor(node, edge, reward, stepNum) {
+        this.node = node;       // Origin GraphNode
+        this.edge = edge;       // Traversed GraphEdge
+        this.reward = reward;   // Reward collected on step
+        this.stepNum = stepNum;
+        this.next = null;       // Pointer to node below in stack
+    }
+}
+
+class TrajectoryStack {
+    constructor() {
+        this.top = null;
+        this.size = 0;
+    }
+
+    push(node, edge, reward, stepNum) {
+        const newNode = new StackNode(node, edge, reward, stepNum);
+        newNode.next = this.top; // Link new node above current TOP
+        this.top = newNode;      // O(1) TOP pointer update
+        this.size++;
+        return newNode;
+    }
+
+    pop() {
+        if (this.top === null) return null;
+        const popped = this.top;
+        this.top = this.top.next; // O(1) TOP pointer retreat
+        popped.next = null;
+        this.size--;
+        return popped;
+    }
+}`
+        };
+
+        /* ============================================================================
+           SECTION 3: APPLICATION STATE & RL CONTROLLER
+           ============================================================================ */
+        const GRID_SIZE = 10;
+        const MAX_EPISODE_STEPS = 80;
+        const BOOST_CYCLE = ['RIGHT', 'DOWN', 'LEFT', 'UP'];
+        const BOOST_SYMBOLS = { RIGHT: '→', DOWN: '↓', LEFT: '←', UP: '↑' };
+
+        const graph = new WeightedGraph(GRID_SIZE, GRID_SIZE);
+        const replayBuffer = new CircularReplayBuffer(10);
+        const trajectoryStack = new TrajectoryStack();
+
+        // Tracks which BONUS (+25) tiles have been picked up in the active episode
+        const collectedBonus = new Array(GRID_SIZE);
+        for (let r = 0; r < GRID_SIZE; r++) {
+            collectedBonus[r] = new Array(GRID_SIZE);
+        }
+
+        function resetEpisodeBonuses() {
+            collectedList = [];
+            curMaskKey = '';
+            stepMaskBefore = '';
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    collectedBonus[r][c] = false;
+                }
+            }
+        }
+
+        const appState = {
+            // Tabular Q-Learning Hyperparameters
+            alpha: 0.30,
+            gamma: 0.92,
+            epsilon: 1.0,
+            minEpsilon: 0.08,
+            epsilonDecay: 0.985,
+            replayOn: true,
+            replayBatch: 4,
+            history: [],
+
+            // Telemetry
+            episode: 0,
+            totalWins: 0,
+            lastReward: 0,
+            lastOutcome: 'Awaiting run',
+
+            // Board Interaction Mode: 'INSPECT' | 'EDIT' | 'PLAY'
+            boardMode: 'INSPECT',
+            activeBrush: 'WALL',
+            brushBoostDir: 'RIGHT',
+            isPointerDown: false,
+
+            // Inspected & Active Nodes
+            inspectedNode: graph.startNode,
+            agentNode: graph.startNode,
+            activeBackpropEdge: null,
+            stackStatus: 'IDLE', // 'IDLE' | 'PUSHING' | 'POPPING'
+            phaseText: 'READY • SELECT TRAIN OR WATCH EPISODE',
+
+            // Manual Play State
+            humanSteps: 0,
+            humanScore: 0,
+            humanFinished: false,
+
+            // Animation Timers
+            isAnimatingSingle: false,
+            isAutoTraining: false,
+            animTimer: null,
+            autoTimer: null,
+            speedPercent: 60
+        };
+
+        /* ============================================================================
+           SECTION 4: PRESETS & PROCEDURAL SOLVABLE LEVEL GENERATOR
+           ============================================================================ */
+
+        function clearBoardNodes() {
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    graph.nodes[r][c].type = 'EMPTY';
+                    graph.nodes[r][c].boostDir = 'RIGHT';
+                }
+            }
+        }
+
+        function loadPreset(presetName) {
+            stopAllTimers();
+            clearBoardNodes();
+
+            if (presetName === 'default') {
+                graph.startNode = graph.nodes[0][0];
+                graph.goalNode = graph.nodes[9][9];
+
+                const walls = [
+                    [1, 2], [2, 2], [3, 2], [4, 2],
+                    [2, 5], [2, 6], [2, 7], [3, 7],
+                    [5, 4], [6, 4], [7, 4],
+                    [6, 7], [7, 7], [8, 7]
+                ];
+                for (let i = 0; i < walls.length; i++) {
+                    graph.nodes[walls[i][0]][walls[i][1]].type = 'WALL';
+                }
+
+                const traps = [
+                    [1, 4], [4, 7], [7, 2], [8, 8]
+                ];
+                for (let i = 0; i < traps.length; i++) {
+                    graph.nodes[traps[i][0]][traps[i][1]].type = 'TRAP';
+                }
+
+                // One-Way Boost Pads
+                graph.nodes[0][3].type = 'BOOST';
+                graph.nodes[0][3].boostDir = 'RIGHT';
+                graph.nodes[4][1].type = 'BOOST';
+                graph.nodes[4][1].boostDir = 'DOWN';
+
+                // Bonus Beacon
+                graph.nodes[1][8].type = 'BONUS';
+
+            } else if (presetName === 'wormhole') {
+                graph.startNode = graph.nodes[0][0];
+                graph.goalNode = graph.nodes[9][9];
+
+                // Diagonal wall barrier with a narrow gap vs instant Wormhole Shortcut
+                for (let i = 0; i < 9; i++) {
+                    if (i !== 4) {
+                        graph.nodes[i][8 - i].type = 'WALL';
+                    }
+                }
+                graph.nodes[4][4].type = 'TRAP';
+                graph.nodes[7][6].type = 'TRAP';
+
+                // Paired Wormhole Portals A <-> B
+                graph.nodes[1][1].type = 'PORTAL_A';
+                graph.nodes[8][7].type = 'PORTAL_B';
+
+                // Bonus Beacon
+                graph.nodes[6][8].type = 'BONUS';
+
+            } else if (presetName === 'conveyor') {
+                graph.startNode = graph.nodes[4][0];
+                graph.goalNode = graph.nodes[4][9];
+
+                // Hazard pits top and bottom
+                for (let c = 2; c <= 7; c++) {
+                    graph.nodes[2][c].type = 'TRAP';
+                    graph.nodes[6][c].type = 'TRAP';
+                }
+                graph.nodes[3][4].type = 'WALL';
+                graph.nodes[5][5].type = 'WALL';
+
+                // Central Boost Conveyor Lane
+                graph.nodes[4][2].type = 'BOOST';
+                graph.nodes[4][2].boostDir = 'RIGHT';
+                graph.nodes[4][5].type = 'BOOST';
+                graph.nodes[4][5].boostDir = 'RIGHT';
+
+                // Bonus Beacon slightly off-lane
+                graph.nodes[1][5].type = 'BONUS';
+            }
+
+            graph.startNode.type = 'START';
+            graph.goalNode.type = 'GOAL';
+            graph.rebuildEdges(true);
+
+            resetBrainState(false);
+            updateReachabilityStatus();
+            renderAll();
+        }
+
+        /**
+         * Procedural Level Generator:
+         * Carves a unique solvable arena with walls, traps, boost pads, paired portals,
+         * and a bonus beacon, verified via WeightedGraph.checkPathExistsBFS().
+         */
+        function generateRandomSolvableMap() {
+            stopAllTimers();
+            let attempts = 0;
+            let solvable = false;
+
+            while (!solvable && attempts < 60) {
+                attempts++;
+                clearBoardNodes();
+
+                graph.startNode = graph.nodes[0][0];
+                graph.goalNode = graph.nodes[9][9];
+                graph.startNode.type = 'START';
+                graph.goalNode.type = 'GOAL';
+
+                // Place 18 random Walls
+                let wallsPlaced = 0;
+                while (wallsPlaced < 18) {
+                    const r = Math.floor(Math.random() * GRID_SIZE);
+                    const c = Math.floor(Math.random() * GRID_SIZE);
+                    if (graph.nodes[r][c].type === 'EMPTY') {
+                        graph.nodes[r][c].type = 'WALL';
+                        wallsPlaced++;
+                    }
+                }
+
+                // Place 5 Hazard Traps (-50)
+                let trapsPlaced = 0;
+                while (trapsPlaced < 5) {
+                    const r = Math.floor(Math.random() * GRID_SIZE);
+                    const c = Math.floor(Math.random() * GRID_SIZE);
+                    if (graph.nodes[r][c].type === 'EMPTY') {
+                        graph.nodes[r][c].type = 'TRAP';
+                        trapsPlaced++;
+                    }
+                }
+
+                // Place 2 One-Way Boost Pads
+                let boostsPlaced = 0;
+                while (boostsPlaced < 2) {
+                    const r = Math.floor(Math.random() * GRID_SIZE);
+                    const c = Math.floor(Math.random() * GRID_SIZE);
+                    if (graph.nodes[r][c].type === 'EMPTY') {
+                        graph.nodes[r][c].type = 'BOOST';
+                        graph.nodes[r][c].boostDir = BOOST_CYCLE[Math.floor(Math.random() * 4)];
+                        boostsPlaced++;
+                    }
+                }
+
+                // Place Paired Portals A and B
+                let portalAPlaced = false;
+                while (!portalAPlaced) {
+                    const r = Math.floor(Math.random() * 5);
+                    const c = Math.floor(Math.random() * 5);
+                    if (graph.nodes[r][c].type === 'EMPTY') {
+                        graph.nodes[r][c].type = 'PORTAL_A';
+                        portalAPlaced = true;
+                    }
+                }
+                let portalBPlaced = false;
+                while (!portalBPlaced) {
+                    const r = 5 + Math.floor(Math.random() * 5);
+                    const c = 5 + Math.floor(Math.random() * 5);
+                    if (graph.nodes[r][c].type === 'EMPTY') {
+                        graph.nodes[r][c].type = 'PORTAL_B';
+                        portalBPlaced = true;
+                    }
+                }
+
+                // Place 1 Bonus Beacon (+25)
+                let bonusPlaced = false;
+                while (!bonusPlaced) {
+                    const r = Math.floor(Math.random() * GRID_SIZE);
+                    const c = Math.floor(Math.random() * GRID_SIZE);
+                    if (graph.nodes[r][c].type === 'EMPTY') {
+                        graph.nodes[r][c].type = 'BONUS';
+                        bonusPlaced = true;
+                    }
+                }
+
+                graph.rebuildEdges(true);
+                solvable = graph.checkPathExistsBFS();
+            }
+
+            // Clear active preset highlight
+            const presetBtns = document.querySelectorAll('.preset-btn');
+            for (let i = 0; i < presetBtns.length; i++) {
+                presetBtns[i].className = 'preset-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#E4E4E7] transition cursor-pointer';
+            }
+
+            resetBrainState(false);
+            updateReachabilityStatus();
+            renderAll();
+            showToast('Generated new BFS-verified solvable arena.');
+        }
+
+        function resetBrainState(showFeedback = true) {
+            stopAllTimers();
+            graph.resetAllQValues();
+            replayBuffer.clear();
+            trajectoryStack.clear();
+            resetEpisodeBonuses();
+
+            appState.episode = 0;
+            appState.history = [];
+            appState.totalWins = 0;
+            appState.lastReward = 0;
+            appState.lastOutcome = 'Awaiting run';
+            appState.epsilon = 1.0;
+            appState.agentNode = graph.startNode;
+            appState.inspectedNode = graph.startNode;
+            appState.activeBackpropEdge = null;
+            appState.stackStatus = 'IDLE';
+            appState.phaseText = 'READY • SELECT TRAIN OR WATCH EPISODE';
+
+            resetManualRunState(false);
+            renderAll();
+            if (showFeedback) {
+                showToast('AI Brain reset: Q-values, Stack, and Ring Buffer cleared.');
+            }
+        }
+
+        /* ============================================================================
+           SECTION 5: TABULAR Q-LEARNING ENGINE & LIFO STACK BACKPROPAGATION
+           ============================================================================ */
+
+        /**
+         * Selects an outgoing GraphEdge using Epsilon-Greedy policy.
+         */
+        function chooseActionEdge(node, epsilonOverride = null) {
+            if (node.edgesHead === null) return null;
+            const eps = epsilonOverride !== null ? epsilonOverride : appState.epsilon;
+
+            if (Math.random() < eps) {
+                let count = 0;
+                let curr = node.edgesHead;
+                while (curr !== null) {
+                    count++;
+                    curr = curr.next;
+                }
+                const targetIdx = Math.floor(Math.random() * count);
+                let idx = 0;
+                curr = node.edgesHead;
+                while (curr !== null) {
+                    if (idx === targetIdx) return curr;
+                    idx++;
+                    curr = curr.next;
+                }
+            }
+            return node.getBestEdge();
+        }
+
+        /**
+         * Computes immediate transition reward, awarding +25 once per episode on BONUS tiles.
+         */
+        function evaluateStepReward(edge) {
+            let reward = edge.baseReward;
+            const dest = edge.targetNode;
+            stepMaskBefore = curMaskKey;
+            if (dest.type === 'BONUS' && !collectedBonus[dest.row][dest.col]) {
+                collectedBonus[dest.row][dest.col] = true;
+                collectedList.push(dest.row * GRID_SIZE + dest.col);
+                curMaskKey = collectedList.slice().sort((a, b) => a - b).join('|');
+                reward = 25;
+            }
+            return reward;
+        }
+
+        /**
+         * Bellman Q-Learning Update executed as each StackNode is popped LIFO.
+         */
+        function updateQValueFromStackNode(stackNode) {
+            const edge = stackNode.edge;
+            if (edge === null) return;
+
+            applyTD(edge, stackNode.reward, stackNode.maskBefore, stackNode.maskAfter);
+        }
+
+        /** One Bellman update: Q(s,a) += α (r + γ max Q(s',·) − Q(s,a)), with s = tile + bonus state. */
+        function applyTD(edge, reward, maskBefore, maskAfter) {
+            const saved = curMaskKey;
+            const dest = edge.targetNode;
+            const isTerminal = (dest.type === 'GOAL' || dest.type === 'TRAP');
+            curMaskKey = maskAfter;
+            const maxNextQ = isTerminal ? 0.0 : dest.getMaxQ();
+            curMaskKey = maskBefore;
+            edge.qValue = edge.qValue + appState.alpha * (reward + appState.gamma * maxNextQ - edge.qValue);
+            curMaskKey = saved;
+        }
+
+        /** Experience replay: re-learns from random transitions stored in the CircularReplayBuffer. */
+        function replayUpdates() {
+            if (!appState.replayOn) return;
+            const recs = replayBuffer.sampleRecords(appState.replayBatch);
+            for (let i = 0; i < recs.length; i++) {
+                const rec = recs[i];
+                const edge = graph.nodes[rec.fromRow][rec.fromCol].getEdge(rec.action);
+                if (edge !== null) applyTD(edge, rec.reward, rec.maskBefore, rec.maskAfter);
+            }
+        }
+
+        function recordEpisode(reward, won) {
+            appState.history.push({ r: reward, w: won ? 1 : 0 });
+            if (appState.history.length > 1000) appState.history.shift();
+        }
+
+        /**
+         * Executes 1 fast headless training episode.
+         */
+        function runSingleFastEpisode() {
+            trajectoryStack.clear();
+            resetEpisodeBonuses();
+
+            let currNode = graph.startNode;
+            let totalReward = 0;
+            let steps = 0;
+            let outcome = 'Max Steps';
+
+            while (steps < MAX_EPISODE_STEPS) {
+                if (currNode.type === 'GOAL' || currNode.type === 'TRAP') break;
+
+                const chosenEdge = chooseActionEdge(currNode);
+                if (chosenEdge === null) break;
+
+                steps++;
+                const reward = evaluateStepReward(chosenEdge);
+                const nextNode = chosenEdge.targetNode;
+                totalReward += reward;
+
+                // Push transition onto Linear LIFO TrajectoryStack
+                trajectoryStack.push(currNode, chosenEdge, reward, steps);
+
+                // Enqueue transition into Linear CircularReplayBuffer
+                replayBuffer.enqueue({
+                    fromRow: currNode.row,
+                    fromCol: currNode.col,
+                    action: chosenEdge.dir,
+                    toRow: nextNode.row,
+                    toCol: nextNode.col,
+                    reward: reward,
+                    episode: appState.episode + 1
+                });
+
+                currNode = nextNode;
+            }
+
+            if (currNode.type === 'GOAL') {
+                outcome = 'Goal Reached (+100)';
+                appState.totalWins++;
+            } else if (currNode.type === 'TRAP') {
+                outcome = 'Hazard Trap (-50)';
+            }
+
+            // Pop TrajectoryStack LIFO to backpropagate rewards
+            while (trajectoryStack.top !== null) {
+                const popped = trajectoryStack.pop();
+                updateQValueFromStackNode(popped);
+            }
+
+            curMaskKey = '';
+            replayUpdates();
+            recordEpisode(totalReward, currNode.type === 'GOAL');
+            appState.episode++;
+            appState.lastReward = totalReward;
+            appState.lastOutcome = outcome;
+            appState.agentNode = currNode;
+            appState.epsilon = Math.max(appState.minEpsilon, appState.epsilon * appState.epsilonDecay);
+        }
+
+        /**
+         * Animated 1-Episode Visualizer (Phase 1: Push Forward -> Phase 2: Pop LIFO Backward)
+         */
+        function startAnimatedEpisode(isOptimalRun = false) {
+            if (!graph.checkPathExistsBFS()) {
+                showToast('Goal is blocked! Edit walls or randomize map first.');
+                return;
+            }
+
+            stopAllTimers();
+            if (appState.boardMode === 'PLAY') {
+                setBoardMode('INSPECT');
+            }
+
+            appState.isAnimatingSingle = true;
+            trajectoryStack.clear();
+            resetEpisodeBonuses();
+
+            let currNode = graph.startNode;
+            appState.agentNode = currNode;
+            let steps = 0;
+            let totalReward = 0;
+            const stepCap = isOptimalRun ? 50 : MAX_EPISODE_STEPS;
+
+            appState.stackStatus = 'PUSHING';
+            appState.phaseText = isOptimalRun
+                ? 'OPTIMAL POLICY • GREEDY EXECUTION (ε = 0%)'
+                : 'PHASE 1 • PUSHING STEPS TO TRAJECTORY STACK';
+            renderAll();
+
+            const getStepInterval = () => Math.max(30, 320 - appState.speedPercent * 2.8);
+
+            function forwardStep() {
+                if (!appState.isAnimatingSingle) return;
+
+                if (currNode.type === 'GOAL' || currNode.type === 'TRAP' || steps >= stepCap || currNode.edgesHead === null) {
+                    if (currNode.type === 'GOAL') {
+                        appState.lastOutcome = 'Goal Reached (+100)';
+                        if (!isOptimalRun) appState.totalWins++;
+                    } else if (currNode.type === 'TRAP') {
+                        appState.lastOutcome = 'Hazard Trap (-50)';
+                    } else {
+                        appState.lastOutcome = 'Max Steps Limit';
+                    }
+
+                    appState.lastReward = totalReward;
+                    if (!isOptimalRun) {
+                        recordEpisode(totalReward, currNode.type === 'GOAL');
+                        appState.episode++;
+                        appState.epsilon = Math.max(appState.minEpsilon, appState.epsilon * appState.epsilonDecay);
+                    }
+
+                    startBackpropPopPhase(isOptimalRun);
+                    return;
+                }
+
+                const chosenEdge = chooseActionEdge(currNode, isOptimalRun ? 0.0 : appState.epsilon);
+                if (chosenEdge === null) {
+                    startBackpropPopPhase(isOptimalRun);
+                    return;
+                }
+
+                steps++;
+                const reward = evaluateStepReward(chosenEdge);
+                const nextNode = chosenEdge.targetNode;
+                totalReward += reward;
+
+                trajectoryStack.push(currNode, chosenEdge, reward, steps);
+                replayBuffer.enqueue({
+                    fromRow: currNode.row,
+                    fromCol: currNode.col,
+                    action: chosenEdge.dir,
+                    toRow: nextNode.row,
+                    toCol: nextNode.col,
+                    reward: reward,
+                    episode: isOptimalRun ? 'OPT' : appState.episode + 1
+                });
+
+                currNode = nextNode;
+                appState.agentNode = currNode;
+                appState.inspectedNode = currNode;
+
+                renderAll();
+                appState.animTimer = setTimeout(forwardStep, getStepInterval());
+            }
+
+            appState.animTimer = setTimeout(forwardStep, getStepInterval());
+        }
+
+        function startBackpropPopPhase(isOptimalRun) {
+            appState.stackStatus = 'POPPING';
+            curMaskKey = '';
+            appState.phaseText = isOptimalRun
+                ? 'OPTIMAL RUN DONE • UNWINDING TRAJECTORY STACK'
+                : 'PHASE 2 • POPPING STACK (LIFO) & UPDATING Q-VALUES';
+            renderAll();
+
+            const getPopInterval = () => Math.max(30, 280 - appState.speedPercent * 2.4);
+
+            function popStep() {
+                if (!appState.isAnimatingSingle) return;
+
+                if (trajectoryStack.top === null) {
+                    if (!isOptimalRun) replayUpdates();
+                    curMaskKey = '';
+                    appState.isAnimatingSingle = false;
+                    appState.stackStatus = 'IDLE';
+                    appState.activeBackpropEdge = null;
+                    appState.phaseText = 'EPISODE COMPLETE • Q-VALUES UPDATED';
+                    renderAll();
+                    return;
+                }
+
+                const popped = trajectoryStack.pop();
+                if (!isOptimalRun) {
+                    updateQValueFromStackNode(popped);
+                }
+
+                appState.activeBackpropEdge = {
+                    fromNode: popped.node,
+                    toNode: popped.edge.targetNode
+                };
+                appState.inspectedNode = popped.node;
+
+                renderAll();
+                appState.animTimer = setTimeout(popStep, getPopInterval());
+            }
+
+            appState.animTimer = setTimeout(popStep, getPopInterval());
+        }
+
+        function trainBatch100Episodes() {
+            if (!graph.checkPathExistsBFS()) {
+                showToast('Goal is blocked! Edit walls or randomize map first.');
+                return;
+            }
+            stopAllTimers();
+            if (appState.boardMode === 'PLAY') {
+                setBoardMode('INSPECT');
+            }
+
+            for (let i = 0; i < 100; i++) {
+                runSingleFastEpisode();
+            }
+
+            appState.stackStatus = 'IDLE';
+            appState.activeBackpropEdge = null;
+            appState.phaseText = `TRAINED 100 EPISODES • TOTAL: ${appState.episode}`;
+            renderAll();
+            showToast(`Trained 100 episodes. Goal win rate: ${formatWinRate()}`);
+        }
+
+        function toggleAutoTrain() {
+            if (appState.isAutoTraining) {
+                stopAllTimers();
+                appState.phaseText = 'AUTO-TRAIN PAUSED';
+                renderAll();
+                return;
+            }
+
+            if (!graph.checkPathExistsBFS()) {
+                showToast('Goal is blocked! Edit walls or randomize map first.');
+                return;
+            }
+
+            stopAllTimers();
+            if (appState.boardMode === 'PLAY') {
+                setBoardMode('INSPECT');
+            }
+
+            appState.isAutoTraining = true;
+            updateAutoTrainUI();
+
+            const loop = () => {
+                if (!appState.isAutoTraining) return;
+                const batchSize = appState.speedPercent > 75 ? 6 : (appState.speedPercent > 40 ? 2 : 1);
+                for (let i = 0; i < batchSize; i++) {
+                    runSingleFastEpisode();
+                }
+                appState.phaseText = `AUTO-TRAINING • EPISODE ${appState.episode}`;
+                renderAll();
+
+                const delay = Math.max(16, 170 - appState.speedPercent * 1.5);
+                appState.autoTimer = setTimeout(loop, delay);
+            };
+            loop();
+        }
+
+        function stopAllTimers() {
+            appState.isAnimatingSingle = false;
+            appState.isAutoTraining = false;
+            appState.activeBackpropEdge = null;
+            if (appState.animTimer !== null) {
+                clearTimeout(appState.animTimer);
+                appState.animTimer = null;
+            }
+            if (appState.autoTimer !== null) {
+                clearTimeout(appState.autoTimer);
+                appState.autoTimer = null;
+            }
+            updateAutoTrainUI();
+        }
+
+        function updateAutoTrainUI() {
+            const btn = document.getElementById('btnAutoTrain');
+            const dot = document.getElementById('autoTrainDot');
+            const lbl = document.getElementById('autoTrainLabel');
+            if (appState.isAutoTraining) {
+                btn.className = 'col-span-2 sm:col-span-1 px-3 py-2.5 rounded-lg text-xs font-semibold bg-[#0A0A0A] text-white border border-[#0A0A0A] transition flex items-center justify-center gap-2 cursor-pointer';
+                dot.className = 'w-2 h-2 rounded-full bg-white animate-ping';
+                lbl.textContent = 'Auto-Train: ON';
+            } else {
+                btn.className = 'col-span-2 sm:col-span-1 px-3 py-2.5 rounded-lg text-xs font-semibold bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#0A0A0A] transition flex items-center justify-center gap-2 cursor-pointer';
+                dot.className = 'w-2 h-2 rounded-full border border-[#0A0A0A] bg-white';
+                lbl.textContent = 'Auto-Train: OFF';
+            }
+        }
+
+        /* ============================================================================
+           SECTION 6: MANUAL PLAY MODE & HUMAN VS AI BENCHMARK
+           ============================================================================ */
+
+        /**
+         * Computes the current trained AI's greedy optimal score from Start -> Goal
+         * so Human players can compare their score directly against the AI.
+         */
+        function computeAIOptimalBenchmark() {
+            if (appState.episode === 0 || !graph.checkPathExistsBFS()) return null;
+
+            const savedBonuses = new Array(GRID_SIZE);
+            for (let r = 0; r < GRID_SIZE; r++) {
+                savedBonuses[r] = new Array(GRID_SIZE);
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    savedBonuses[r][c] = collectedBonus[r][c];
+                    collectedBonus[r][c] = false;
+                }
+            }
+
+            const savedMaskKey = curMaskKey, savedList = collectedList;
+            curMaskKey = ''; collectedList = [];
+            let curr = graph.startNode;
+            let score = 0;
+            let steps = 0;
+            let reachedGoal = false;
+
+            while (steps < 45) {
+                if (curr === graph.goalNode) {
+                    reachedGoal = true;
+                    break;
+                }
+                if (curr.type === 'TRAP') break;
+
+                const bestEdge = curr.getBestEdge();
+                if (bestEdge === null || Math.abs(bestEdge.qValue) < 0.01) break;
+
+                steps++;
+                score += evaluateStepReward(bestEdge);
+                curr = bestEdge.targetNode;
+            }
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    collectedBonus[r][c] = savedBonuses[r][c];
+                }
+            }
+
+            curMaskKey = savedMaskKey; collectedList = savedList;
+            return reachedGoal ? score : null;
+        }
+
+        function resetManualRunState(shouldRender = true) {
+            resetEpisodeBonuses();
+            trajectoryStack.clear();
+            appState.agentNode = graph.startNode;
+            appState.inspectedNode = graph.startNode;
+            appState.humanSteps = 0;
+            appState.humanScore = 0;
+            appState.humanFinished = false;
+            appState.stackStatus = 'IDLE';
+
+            if (appState.boardMode === 'PLAY') {
+                appState.phaseText = 'MANUAL PLAY • USE ARROW KEYS OR D-PAD';
+            }
+            if (shouldRender) renderAll();
+        }
+
+        function moveHumanAgent(dir) {
+            if (appState.boardMode !== 'PLAY') return;
+            if (appState.humanFinished) {
+                showToast('Run finished! Click "Reset Run" to play again.');
+                return;
+            }
+
+            const curr = appState.agentNode;
+            const edge = curr.getEdge(dir);
+            if (edge === null) {
+                showToast('Blocked by wall or arena boundary.');
+                return;
+            }
+
+            appState.humanSteps++;
+            const reward = evaluateStepReward(edge);
+            appState.humanScore += reward;
+            const nextNode = edge.targetNode;
+
+            trajectoryStack.push(curr, edge, reward, appState.humanSteps);
+            replayBuffer.enqueue({
+                fromRow: curr.row,
+                fromCol: curr.col,
+                action: edge.dir,
+                toRow: nextNode.row,
+                toCol: nextNode.col,
+                reward: reward,
+                episode: 'MAN'
+            });
+
+            appState.agentNode = nextNode;
+            appState.inspectedNode = nextNode;
+
+            if (nextNode.type === 'GOAL') {
+                appState.humanFinished = true;
+                appState.phaseText = `GOAL REACHED IN ${appState.humanSteps} STEPS • SCORE: ${appState.humanScore}`;
+                showToast(`Goal reached! Score: ${appState.humanScore} (${appState.humanSteps} steps)`);
+            } else if (nextNode.type === 'TRAP') {
+                appState.humanFinished = true;
+                appState.phaseText = `HIT HAZARD TRAP (-50) • SCORE: ${appState.humanScore}`;
+                showToast('You hit a Hazard Trap (-50)! Click Reset Run.');
+            } else {
+                appState.phaseText = `MANUAL PLAY • STEPS: ${appState.humanSteps} | SCORE: ${appState.humanScore}`;
+            }
+
+            renderAll();
+        }
+
+        function setBoardMode(newMode) {
+            stopAllTimers();
+            appState.boardMode = newMode;
+
+            const modeBtns = document.querySelectorAll('.board-mode-btn');
+            for (let i = 0; i < modeBtns.length; i++) {
+                const btn = modeBtns[i];
+                const isActive = btn.dataset.boardmode === newMode;
+                btn.className = isActive
+                    ? 'board-mode-btn py-2.5 px-2 rounded-lg text-xs font-semibold bg-[#0A0A0A] text-white transition cursor-pointer'
+                    : 'board-mode-btn py-2.5 px-2 rounded-lg text-xs font-medium text-[#52525B] hover:text-[#0A0A0A] transition cursor-pointer';
+            }
+
+            const editPanel = document.getElementById('editPalettePanel');
+            const playPanel = document.getElementById('manualPlayPanel');
+            const subtitle = document.getElementById('modeSubtitle');
+            const canvasEl = document.getElementById('gridCanvas');
+
+            editPanel.classList.add('hidden');
+            editPanel.classList.remove('flex');
+            playPanel.classList.add('hidden');
+            playPanel.classList.remove('flex');
+            canvasEl.classList.remove('mode-edit', 'mode-play');
+
+            if (newMode === 'INSPECT') {
+                subtitle.textContent = 'Inspect Mode: Tap any tile to inspect its GraphNode & edges';
+                appState.phaseText = 'INSPECT MODE • TAP ANY TILE TO VIEW GRAPH EDGES';
+            } else if (newMode === 'EDIT') {
+                editPanel.classList.remove('hidden');
+                editPanel.classList.add('flex');
+                canvasEl.classList.add('mode-edit');
+                subtitle.textContent = 'Edit Mode: Tap or drag on the grid to place special tiles';
+                appState.phaseText = 'EDIT ARENA • GRAPH EDGES UPDATE IN REAL TIME';
+            } else if (newMode === 'PLAY') {
+                playPanel.classList.remove('hidden');
+                playPanel.classList.add('flex');
+                canvasEl.classList.add('mode-play');
+                subtitle.textContent = 'Manual Play: Navigate from Start (S) to Goal (G) vs AI';
+                resetManualRunState(false);
+            }
+
+            renderAll();
+        }
+
+        /* ============================================================================
+           SECTION 7: MONOCHROME SWISS ARCHITECTURAL CANVAS RENDERING
+           ============================================================================ */
+        const canvas = document.getElementById('gridCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            const size = Math.floor(rect.width);
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            drawArena();
+        }
+
+        function drawArena() {
+            const dpr = window.devicePixelRatio || 1;
+            const totalSize = canvas.width / dpr;
+            if (totalSize <= 0) return;
+
+            // Coordinate ruler margin along top and left (0-9)
+            const rulerMargin = Math.max(20, Math.floor(totalSize * 0.052));
+            const boardSize = totalSize - rulerMargin - 2;
+            const cellSize = boardSize / GRID_SIZE;
+
+            const showHeatmap = document.getElementById('toggleHeatmap').checked;
+            const showArrows = document.getElementById('toggleArrows').checked;
+
+            ctx.clearRect(0, 0, totalSize, totalSize);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, totalSize, totalSize);
+
+            // 1. Draw Top & Left Coordinate Rulers (0..9)
+            ctx.fillStyle = '#52525B';
+            ctx.font = `500 ${Math.max(9, Math.floor(rulerMargin * 0.52))}px "JetBrains Mono", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i < GRID_SIZE; i++) {
+                const pos = rulerMargin + (i + 0.5) * cellSize;
+                ctx.fillText(String(i), pos, rulerMargin * 0.5);
+                ctx.fillText(String(i), rulerMargin * 0.48, pos);
+            }
+
+            // 2. Draw Grid Cells & Monochrome Q-Value Heatmap
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const node = graph.nodes[r][c];
+                    const x = rulerMargin + c * cellSize;
+                    const y = rulerMargin + r * cellSize;
+
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(x, y, cellSize, cellSize);
+
+                    // Subtle Grayscale Heatmap based on Max Q-value
+                    if (showHeatmap && (node.type === 'EMPTY' || node.type === 'START' || node.type === 'BONUS' || node.type === 'BOOST' || node.type === 'PORTAL_A' || node.type === 'PORTAL_B')) {
+                        const maxQ = node.getMaxQ();
+                        if (maxQ > 0.25) {
+                            const alpha = Math.min(0.22, (maxQ / 95) * 0.22);
+                            ctx.fillStyle = `rgba(10, 10, 10, ${alpha})`;
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                        } else if (maxQ < -0.5) {
+                            ctx.fillStyle = '#F4F4F5';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                        }
+                    }
+
+                    // Render Special Game Tiles
+                    if (node.type === 'WALL') {
+                        drawWallTile(x, y, cellSize);
+                    } else if (node.type === 'TRAP') {
+                        drawTrapTile(x, y, cellSize);
+                    } else if (node.type === 'GOAL') {
+                        drawGoalTile(x, y, cellSize);
+                    } else if (node.type === 'START') {
+                        drawStartTile(x, y, cellSize);
+                    } else if (node.type === 'BOOST') {
+                        drawBoostTile(x, y, cellSize, node.boostDir);
+                    } else if (node.type === 'PORTAL_A' || node.type === 'PORTAL_B') {
+                        drawPortalTile(x, y, cellSize, node.type === 'PORTAL_A' ? 'A' : 'B');
+                    } else if (node.type === 'BONUS') {
+                        drawBonusTile(x, y, cellSize, collectedBonus[r][c]);
+                    }
+
+                    // Cell Hairline Border
+                    ctx.strokeStyle = '#E4E4E7';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, cellSize, cellSize);
+
+                    // 3. Draw Learned Policy Arrow in Walkable Cells
+                    if (showArrows && (node.type === 'EMPTY' || node.type === 'BONUS')) {
+                        const bestEdge = node.getBestEdge();
+                        if (bestEdge !== null && Math.abs(bestEdge.qValue) > 0.05) {
+                            drawPolicyArrow(
+                                x + cellSize / 2,
+                                y + cellSize / 2,
+                                cellSize * 0.24,
+                                bestEdge.dir,
+                                node.type === 'BONUS' && !collectedBonus[r][c] ? 0.35 : 0.85
+                            );
+                        }
+                    }
+                }
+            }
+
+            // 4. Draw Dashed Wormhole Link Line between Portal A and Portal B
+            if (graph.portalANode !== null && graph.portalBNode !== null) {
+                const ax = rulerMargin + (graph.portalANode.col + 0.5) * cellSize;
+                const ay = rulerMargin + (graph.portalANode.row + 0.5) * cellSize;
+                const bx = rulerMargin + (graph.portalBNode.col + 0.5) * cellSize;
+                const by = rulerMargin + (graph.portalBNode.row + 0.5) * cellSize;
+
+                ctx.save();
+                ctx.strokeStyle = 'rgba(10, 10, 10, 0.32)';
+                ctx.lineWidth = 1.25;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(bx, by);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // 5. Draw Active TrajectoryStack Breadcrumb Trail
+            if (trajectoryStack.top !== null) {
+                ctx.save();
+                ctx.strokeStyle = '#0A0A0A';
+                ctx.lineWidth = appState.stackStatus === 'POPPING' ? 2.8 : 2;
+                ctx.setLineDash(appState.stackStatus === 'POPPING' ? [] : [3, 3]);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                ctx.beginPath();
+                let curr = trajectoryStack.top;
+                let isFirst = true;
+                while (curr !== null) {
+                    const tx = rulerMargin + (curr.edge.targetNode.col + 0.5) * cellSize;
+                    const ty = rulerMargin + (curr.edge.targetNode.row + 0.5) * cellSize;
+                    const fx = rulerMargin + (curr.node.col + 0.5) * cellSize;
+                    const fy = rulerMargin + (curr.node.row + 0.5) * cellSize;
+
+                    if (isFirst) {
+                        ctx.moveTo(tx, ty);
+                        isFirst = false;
+                    }
+                    ctx.lineTo(fx, fy);
+                    curr = curr.next;
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // 6. Highlight Edge Currently Being Popped During Backpropagation
+            if (appState.activeBackpropEdge !== null) {
+                const { fromNode, toNode } = appState.activeBackpropEdge;
+                const fx = rulerMargin + (fromNode.col + 0.5) * cellSize;
+                const fy = rulerMargin + (fromNode.row + 0.5) * cellSize;
+                const tx = rulerMargin + (toNode.col + 0.5) * cellSize;
+                const ty = rulerMargin + (toNode.row + 0.5) * cellSize;
+
+                ctx.save();
+                ctx.strokeStyle = '#0A0A0A';
+                ctx.lineWidth = 4.5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(fx, fy);
+                ctx.lineTo(tx, ty);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // 7. Crisp Outer Arena Border
+            ctx.strokeStyle = '#0A0A0A';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(rulerMargin, rulerMargin, boardSize, boardSize);
+
+            // 8. Inspected Cell Selection Frame
+            if (appState.inspectedNode !== null) {
+                const ix = rulerMargin + appState.inspectedNode.col * cellSize;
+                const iy = rulerMargin + appState.inspectedNode.row * cellSize;
+                ctx.save();
+                ctx.strokeStyle = '#0A0A0A';
+                ctx.lineWidth = 2.5;
+                ctx.strokeRect(ix + 1.5, iy + 1.5, cellSize - 3, cellSize - 3);
+                ctx.restore();
+            }
+
+            // 9. Autonomous Agent Rover Marker
+            if (appState.agentNode !== null) {
+                const ax = rulerMargin + (appState.agentNode.col + 0.5) * cellSize;
+                const ay = rulerMargin + (appState.agentNode.row + 0.5) * cellSize;
+                const r = cellSize * 0.28;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(ax, ay, r + 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(ax, ay, r, 0, Math.PI * 2);
+                ctx.fillStyle = '#0A0A0A';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(ax, ay, r * 0.42, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawWallTile(x, y, size) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x, y, size, size);
+            ctx.clip();
+
+            ctx.fillStyle = '#FAFAFA';
+            ctx.fillRect(x, y, size, size);
+
+            ctx.strokeStyle = '#0A0A0A';
+            ctx.lineWidth = 1.25;
+            const step = 6;
+            for (let d = -size; d < size * 2; d += step) {
+                ctx.beginPath();
+                ctx.moveTo(x + d, y + size);
+                ctx.lineTo(x + d + size, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawStartTile(x, y, size) {
+            const pad = size * 0.18;
+            ctx.save();
+            ctx.fillStyle = '#0A0A0A';
+            ctx.fillRect(x + pad, y + pad, size - pad * 2, size - pad * 2);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `700 ${Math.max(10, Math.floor(size * 0.34))}px "JetBrains Mono", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('S', x + size / 2, y + size / 2 + 0.5);
+            ctx.restore();
+        }
+
+        function drawGoalTile(x, y, size) {
+            const cx = x + size / 2;
+            const cy = y + size * 0.44;
+            const outerR = size * 0.26;
+            ctx.save();
+            ctx.strokeStyle = '#0A0A0A';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerR * 0.45, 0, Math.PI * 2);
+            ctx.fillStyle = '#0A0A0A';
+            ctx.fill();
+
+            ctx.fillStyle = '#0A0A0A';
+            ctx.font = `700 ${Math.max(7, Math.floor(size * 0.17))}px "JetBrains Mono", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('+100', cx, y + size - 3);
+            ctx.restore();
+        }
+
+        function drawTrapTile(x, y, size) {
+            const cx = x + size / 2;
+            const cy = y + size * 0.44;
+            const r = size * 0.24;
+            ctx.save();
+            ctx.strokeStyle = '#0A0A0A';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            const d = r * 0.55;
+            ctx.beginPath();
+            ctx.moveTo(cx - d, cy - d);
+            ctx.lineTo(cx + d, cy + d);
+            ctx.moveTo(cx + d, cy - d);
+            ctx.lineTo(cx - d, cy + d);
+            ctx.stroke();
+
+            ctx.fillStyle = '#0A0A0A';
+            ctx.font = `700 ${Math.max(7, Math.floor(size * 0.17))}px "JetBrains Mono", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('-50', cx, y + size - 3);
+            ctx.restore();
+        }
+
+        function drawBoostTile(x, y, size, dir) {
+            const cx = x + size / 2;
+            const cy = y + size / 2;
+            const angles = { RIGHT: 0, DOWN: Math.PI / 2, LEFT: Math.PI, UP: -Math.PI / 2 };
+
+            ctx.save();
+            ctx.fillStyle = '#F4F4F5';
+            ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+
+            ctx.translate(cx, cy);
+            ctx.rotate(angles[dir] || 0);
+
+            ctx.strokeStyle = '#0A0A0A';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const s = size * 0.16;
+            ctx.beginPath();
+            ctx.moveTo(-s * 1.1, -s);
+            ctx.lineTo(-s * 0.1, 0);
+            ctx.lineTo(-s * 1.1, s);
+
+            ctx.moveTo(s * 0.2, -s);
+            ctx.lineTo(s * 1.2, 0);
+            ctx.lineTo(s * 0.2, s);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawPortalTile(x, y, size, label) {
+            const cx = x + size / 2;
+            const cy = y + size / 2;
+            const r = size * 0.31;
+
+            ctx.save();
+            ctx.strokeStyle = '#0A0A0A';
+            ctx.lineWidth = 1.6;
+            ctx.setLineDash([3, 2]);
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#0A0A0A';
+            ctx.font = `700 ${Math.max(10, Math.floor(size * 0.30))}px "JetBrains Mono", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, cx, cy + 0.5);
+            ctx.restore();
+        }
+
+        function drawBonusTile(x, y, size, isCollected) {
+            const cx = x + size / 2;
+            const cy = y + size / 2;
+            const r = size * 0.27;
+
+            ctx.save();
+            ctx.strokeStyle = isCollected ? '#A1A1AA' : '#0A0A0A';
+            ctx.lineWidth = 1.6;
+            if (isCollected) ctx.setLineDash([2, 2]);
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - r);
+            ctx.lineTo(cx + r, cy);
+            ctx.lineTo(cx, cy + r);
+            ctx.lineTo(cx - r, cy);
+            ctx.closePath();
+            ctx.stroke();
+
+            if (!isCollected) {
+                ctx.fillStyle = '#0A0A0A';
+                ctx.font = `700 ${Math.max(7, Math.floor(size * 0.16))}px "JetBrains Mono", monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('+25', cx, cy + 0.5);
+            }
+            ctx.restore();
+        }
+
+        function drawPolicyArrow(cx, cy, size, dir, opacity = 0.85) {
+            const angles = { UP: -Math.PI / 2, DOWN: Math.PI / 2, LEFT: Math.PI, RIGHT: 0 };
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(angles[dir] || 0);
+            ctx.strokeStyle = `rgba(10, 10, 10, ${opacity})`;
+            ctx.lineWidth = 1.75;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.65, 0);
+            ctx.lineTo(size * 0.65, 0);
+            ctx.moveTo(size * 0.18, -size * 0.42);
+            ctx.lineTo(size * 0.68, 0);
+            ctx.lineTo(size * 0.18, size * 0.42);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        /* ============================================================================
+           SECTION 8: CANVAS POINTER HANDLING (INSPECT VS EDIT MODE)
+           ============================================================================ */
+
+        function getCellFromPointerEvent(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+            const relX = clientX - rect.left;
+            const relY = clientY - rect.top;
+
+            const rulerMargin = Math.max(20, Math.floor(rect.width * 0.052));
+            const boardSize = rect.width - rulerMargin - 2;
+            const bx = relX - rulerMargin;
+            const by = relY - rulerMargin;
+
+            if (bx < 0 || by < 0 || bx >= boardSize || by >= boardSize) return null;
+
+            const col = Math.floor((bx / boardSize) * GRID_SIZE);
+            const row = Math.floor((by / boardSize) * GRID_SIZE);
+            return graph.getNode(row, col);
+        }
+
+        function paintTileWithBrush(node, isInitialClick = false) {
+            if (node === null) return;
+            const brush = appState.activeBrush;
+
+            // Protect Start and Goal from accidental overwrite unless explicitly setting Start/Goal
+            if ((node === graph.startNode || node === graph.goalNode) && brush !== 'START' && brush !== 'GOAL') {
+                appState.inspectedNode = node;
+                renderAll();
+                return;
+            }
+
+            if (brush === 'START') {
+                if (node === graph.goalNode) return;
+                graph.startNode.type = 'EMPTY';
+                graph.startNode = node;
+                node.type = 'START';
+                appState.agentNode = node;
+            } else if (brush === 'GOAL') {
+                if (node === graph.startNode) return;
+                graph.goalNode.type = 'EMPTY';
+                graph.goalNode = node;
+                node.type = 'GOAL';
+            } else if (brush === 'BOOST') {
+                if (node.type === 'BOOST' && isInitialClick) {
+                    let nextIdx = 0;
+                    for (let i = 0; i < 4; i++) {
+                        if (BOOST_CYCLE[i] === node.boostDir) {
+                            nextIdx = (i + 1) % 4;
+                            break;
+                        }
+                    }
+                    node.boostDir = BOOST_CYCLE[nextIdx];
+                    appState.brushBoostDir = node.boostDir;
+                    updateBoostBrushUI();
+                } else {
+                    node.type = 'BOOST';
+                    node.boostDir = appState.brushBoostDir;
+                }
+            } else if (brush === 'PORTAL_A') {
+                if (graph.portalANode !== null && graph.portalANode !== node) {
+                    graph.portalANode.type = 'EMPTY';
+                }
+                node.type = 'PORTAL_A';
+            } else if (brush === 'PORTAL_B') {
+                if (graph.portalBNode !== null && graph.portalBNode !== node) {
+                    graph.portalBNode.type = 'EMPTY';
+                }
+                node.type = 'PORTAL_B';
+            } else {
+                if (node.type === brush) {
+                    appState.inspectedNode = node;
+                    renderAll();
+                    return;
+                }
+                node.type = brush;
+            }
+
+            graph.rebuildEdges(false);
+            updateReachabilityStatus();
+            appState.inspectedNode = node;
+            renderAll();
+        }
+
+        function updateBoostBrushUI() {
+            const sym = BOOST_SYMBOLS[appState.brushBoostDir];
+            document.getElementById('boostBrushGlyph').textContent = sym;
+            document.getElementById('boostBrushLabel').textContent = `Boost ${sym}`;
+        }
+
+        /* ============================================================================
+           SECTION 9: LIVE UI RENDERERS FOR TELEMETRY & 3 DATA STRUCTURES
+           ============================================================================ */
+
+        function formatWinRate() {
+            if (appState.episode === 0) return '0.0%';
+            return ((appState.totalWins / appState.episode) * 100).toFixed(1) + '%';
+        }
+
+        function renderTelemetryCards() {
+            document.getElementById('statEpisode').textContent = String(appState.episode);
+            document.getElementById('statEpsilon').textContent = (appState.epsilon * 100).toFixed(1) + '%';
+
+            const r = appState.lastReward;
+            document.getElementById('statReward').textContent = (r > 0 ? '+' : '') + r;
+            document.getElementById('statOutcome').textContent = appState.lastOutcome;
+
+            document.getElementById('statWinRate').textContent = formatWinRate();
+            document.getElementById('statWinCount').textContent = `${appState.totalWins} / ${appState.episode} goals`;
+            document.getElementById('phaseText').textContent = appState.phaseText;
+
+            if (appState.boardMode === 'PLAY') {
+                document.getElementById('humanStepsVal').textContent = String(appState.humanSteps);
+                document.getElementById('humanScoreVal').textContent = (appState.humanScore > 0 ? '+' : '') + appState.humanScore;
+                const aiBench = computeAIOptimalBenchmark();
+                document.getElementById('aiBenchmarkVal').textContent = aiBench !== null
+                    ? ((aiBench > 0 ? '+' : '') + aiBench)
+                    : 'Untrained';
+            }
+        }
+
+        function renderCircularReplayBufferUI() {
+            document.getElementById('ringHeadVal').textContent = String(replayBuffer.head);
+            document.getElementById('ringTailVal').textContent = String(replayBuffer.tail);
+            document.getElementById('ringCountVal').textContent = `${replayBuffer.count}/${replayBuffer.capacity}`;
+
+            const container = document.getElementById('ringBufferGrid');
+            let html = '';
+
+            for (let i = 0; i < replayBuffer.capacity; i++) {
+                const slot = replayBuffer.slots[i];
+                const isHead = (replayBuffer.count > 0 && i === replayBuffer.head);
+                const isTail = (i === replayBuffer.tail);
+                const isRecent = (i === replayBuffer.lastWrittenIndex);
+
+                const cardBorder = isRecent
+                    ? 'border-[#0A0A0A] bg-[#FAFAFA]'
+                    : (slot !== null ? 'border-[#E4E4E7] bg-white' : 'border-[#E4E4E7] bg-[#FAFAFA]');
+
+                html += `
+                    <div class="p-2.5 rounded-lg border ${cardBorder} flex flex-col justify-between min-h-[78px]">
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            <span class="font-mono text-[10px] font-semibold text-[#52525B]">[${i}]</span>
+                            <div class="flex items-center gap-1">
+                                ${isHead ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold border border-[#0A0A0A] bg-white text-[#0A0A0A]">HEAD</span>' : ''}
+                                ${isTail ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-[#0A0A0A] text-white">TAIL</span>' : ''}
+                            </div>
+                        </div>
+                `;
+
+                if (slot !== null) {
+                    const rewStr = slot.reward > 0 ? `+${slot.reward}` : String(slot.reward);
+                    html += `
+                        <div class="font-mono text-[11px] font-semibold text-[#0A0A0A] truncate">
+                            (${slot.fromRow},${slot.fromCol})→(${slot.toRow},${slot.toCol})
+                        </div>
+                        <div class="flex items-center justify-between font-mono text-[10px] text-[#52525B] mt-1">
+                            <span>Ep#${slot.episode} • ${slot.action[0]}</span>
+                            <span class="font-semibold text-[#0A0A0A]">${rewStr}</span>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="font-mono text-[11px] text-[#A1A1AA] text-center my-auto">NULL</div>
+                    `;
+                }
+
+                html += `</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderTrajectoryStackUI() {
+            document.getElementById('stackSizeBadge').textContent = `SIZE: ${trajectoryStack.size}`;
+
+            const statusBar = document.getElementById('stackOperationStatus');
+            if (appState.stackStatus === 'PUSHING') {
+                statusBar.className = 'px-3 py-2 rounded-lg border border-[#0A0A0A] bg-[#FAFAFA] font-mono text-xs text-[#0A0A0A] flex items-center justify-between';
+                statusBar.innerHTML = `<span>TOP → Step #${trajectoryStack.top ? trajectoryStack.top.stepNum : 0}</span><span class="font-semibold">PUSH O(1)</span>`;
+            } else if (appState.stackStatus === 'POPPING') {
+                statusBar.className = 'px-3 py-2 rounded-lg border border-[#0A0A0A] bg-[#0A0A0A] font-mono text-xs text-white flex items-center justify-between';
+                statusBar.innerHTML = `<span>TOP → Popping LIFO...</span><span class="font-semibold">BELLMAN UPDATE</span>`;
+            } else {
+                statusBar.className = 'px-3 py-2 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] font-mono text-xs text-[#52525B] flex items-center justify-between';
+                statusBar.innerHTML = `<span>TOP → ${trajectoryStack.top ? 'Step #' + trajectoryStack.top.stepNum : 'NULL'}</span><span class="font-semibold text-[#0A0A0A]">IDLE</span>`;
+            }
+
+            const container = document.getElementById('stackContainer');
+            if (trajectoryStack.top === null) {
+                container.innerHTML = `
+                    <div class="h-40 rounded-xl border border-dashed border-[#E4E4E7] bg-[#FAFAFA] flex flex-col items-center justify-center text-center p-5 text-xs text-[#52525B]">
+                        <span class="font-mono font-semibold text-[#0A0A0A] mb-1">TOP ──▶ NULL</span>
+                        <span>Click <strong>Watch 1 Episode</strong> to see steps push onto the LIFO stack and pop backward.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            let curr = trajectoryStack.top;
+            let count = 0;
+
+            while (curr !== null && count < 24) {
+                const isTop = (count === 0);
+                const rewStr = curr.reward > 0 ? `+${curr.reward}` : String(curr.reward);
+
+                html += `
+                    <div class="animate-entry p-3 rounded-lg border ${isTop ? 'border-[#0A0A0A] bg-[#FAFAFA]' : 'border-[#E4E4E7] bg-white'} flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            ${isTop
+                                ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-[#0A0A0A] text-white shrink-0">TOP</span>'
+                                : `<span class="font-mono text-[10px] text-[#52525B] shrink-0">#${curr.stepNum}</span>`
+                            }
+                            <div class="font-mono text-xs text-[#0A0A0A] truncate">
+                                (${curr.node.row},${curr.node.col})
+                                <span class="text-[#52525B]">--[${curr.edge.dir}]--></span>
+                                (${curr.edge.targetNode.row},${curr.edge.targetNode.col})
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded font-mono text-[11px] font-semibold border border-[#E4E4E7] bg-white text-[#0A0A0A] shrink-0">
+                            ${rewStr}
+                        </span>
+                    </div>
+                `;
+
+                if (curr.next !== null) {
+                    html += `<div class="text-center font-mono text-[10px] text-[#A1A1AA] leading-none">↓ .next</div>`;
+                }
+
+                curr = curr.next;
+                count++;
+            }
+
+            if (curr !== null) {
+                html += `<div class="text-center font-mono text-[11px] text-[#52525B] py-1">... +${trajectoryStack.size - count} more StackNodes ...</div>`;
+            }
+            html += `<div class="text-center font-mono text-[11px] text-[#52525B] pt-1">↓ NULL</div>`;
+
+            container.innerHTML = html;
+        }
+
+        function renderGraphInspectorUI() {
+            const node = appState.inspectedNode || graph.startNode;
+            document.getElementById('inspectCoord').textContent = `GraphNode (${node.row}, ${node.col})`;
+
+            const badge = document.getElementById('inspectTypeBadge');
+            let typeLabel = node.type;
+            if (node.type === 'BOOST') typeLabel = `BOOST ${BOOST_SYMBOLS[node.boostDir]}`;
+            badge.textContent = typeLabel;
+
+            const isHighlightedType = (node.type === 'START' || node.type === 'GOAL' || node.type === 'TRAP');
+            badge.className = isHighlightedType
+                ? 'inline-block px-2.5 py-0.5 rounded font-mono text-xs font-semibold border border-[#0A0A0A] bg-[#0A0A0A] text-white'
+                : 'inline-block px-2.5 py-0.5 rounded font-mono text-xs font-semibold border border-[#0A0A0A] bg-white text-[#0A0A0A]';
+
+            document.getElementById('inspectMaxQ').innerHTML = `Max Q: <strong class="text-[#0A0A0A]">${node.getMaxQ().toFixed(2)}</strong>`;
+
+            const listEl = document.getElementById('inspectEdgesList');
+            const dirs = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+            const bestEdge = node.getBestEdge();
+
+            let html = '';
+            for (let i = 0; i < 4; i++) {
+                const dir = dirs[i];
+                const edge = node.getEdge(dir);
+
+                if (edge === null) {
+                    html += `
+                        <div class="px-3.5 py-2.5 rounded-lg border border-[#E4E4E7] bg-[#FAFAFA] flex items-center justify-between font-mono text-xs text-[#A1A1AA]">
+                            <span>${dir.padEnd(5, ' ')} → NULL</span>
+                            <span>Blocked</span>
+                        </div>
+                    `;
+                } else {
+                    const isBest = (bestEdge !== null && bestEdge.dir === dir && Math.abs(edge.qValue) > 0.05);
+                    const barPct = Math.min(100, Math.max(0, (Math.abs(edge.qValue) / 100) * 100));
+                    const rewStr = edge.baseReward > 0 ? `+${edge.baseReward}` : String(edge.baseReward);
+
+                    let specialTag = '';
+                    if (edge.isPortal) {
+                        specialTag = '<span class="px-1.5 py-0.2 rounded text-[9px] border border-[#0A0A0A] bg-white text-[#0A0A0A]">WARP</span>';
+                    } else if (edge.isBoost) {
+                        specialTag = '<span class="px-1.5 py-0.2 rounded text-[9px] border border-[#0A0A0A] bg-white text-[#0A0A0A]">SLIDE</span>';
+                    }
+
+                    html += `
+                        <div class="px-3.5 py-2.5 rounded-lg border ${isBest ? 'border-[#0A0A0A] bg-[#FAFAFA]' : 'border-[#E4E4E7] bg-white'} flex flex-col gap-1.5">
+                            <div class="flex items-center justify-between font-mono text-xs gap-1">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="font-bold text-[#0A0A0A]">${dir}</span>
+                                    <span class="text-[#52525B]">→</span>
+                                    <span class="text-[#0A0A0A]">(${edge.targetNode.row},${edge.targetNode.col})</span>
+                                    ${specialTag}
+                                    ${isBest ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-[#0A0A0A] text-white">BEST</span>' : ''}
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span class="text-[11px] text-[#52525B]">R:${rewStr}</span>
+                                    <span class="font-bold text-[#0A0A0A]">Q:${edge.qValue.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-[#E4E4E7] overflow-hidden">
+                                <div class="h-full bg-[#0A0A0A] transition-all duration-150" style="width: ${barPct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            listEl.innerHTML = html;
+        }
+
+        function updateReachabilityStatus() {
+            const ok = graph.checkPathExistsBFS();
+            const badge = document.getElementById('reachabilityBadge');
+            const dot = document.getElementById('reachabilityDot');
+            const text = document.getElementById('reachabilityText');
+
+            if (ok) {
+                badge.className = 'px-3.5 py-2 rounded-lg text-xs font-mono font-medium border border-[#0A0A0A] bg-[#FAFAFA] text-[#0A0A0A] flex items-center gap-2';
+                dot.className = 'w-2 h-2 rounded-full bg-[#0A0A0A]';
+                text.textContent = 'BFS Path: Verified';
+            } else {
+                badge.className = 'px-3.5 py-2 rounded-lg text-xs font-mono font-semibold border border-[#0A0A0A] bg-[#0A0A0A] text-white flex items-center gap-2';
+                dot.className = 'w-2 h-2 rounded-full bg-white';
+                text.textContent = 'BFS Path: Blocked!';
+            }
+        }
+
+        function renderLearningCurve() {
+            const cv = document.getElementById('lcCanvas');
+            if (!cv) return;
+            const dpr = window.devicePixelRatio || 1;
+            const W = cv.clientWidth, H = cv.clientHeight;
+            if (W === 0) return;
+            cv.width = W * dpr; cv.height = H * dpr;
+            const g = cv.getContext('2d');
+            g.setTransform(dpr, 0, 0, dpr, 0, 0);
+            g.clearRect(0, 0, W, H);
+            const pad = 6, h = appState.history, n = h.length;
+            g.strokeStyle = '#E4E4E7'; g.lineWidth = 1; g.fillStyle = '#A1A1AA'; g.font = '10px JetBrains Mono, monospace';
+            for (let i = 0; i <= 2; i++) {
+                const y = pad + (H - 2 * pad) * (1 - i / 2);
+                g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+                g.fillText(['0%', '50%', '100%'][i], 2, y - 2);
+            }
+            if (n < 2) { g.fillStyle = '#52525B'; g.fillText('Train episodes to see the learning curve', W / 2 - 100, H / 2); return; }
+            const win = 25, wr = [], rw = [];
+            let sw = 0, sr = 0;
+            for (let i = 0; i < n; i++) {
+                sw += h[i].w; sr += h[i].r;
+                if (i >= win) { sw -= h[i - win].w; sr -= h[i - win].r; }
+                const d = Math.min(i + 1, win);
+                wr.push(sw / d); rw.push(sr / d);
+            }
+            let mn = Infinity, mx = -Infinity;
+            for (let i = 0; i < n; i++) { if (rw[i] < mn) mn = rw[i]; if (rw[i] > mx) mx = rw[i]; }
+            if (mx - mn < 1e-6) mx = mn + 1;
+            const X = i => pad + (W - 2 * pad) * (i / (n - 1));
+            const line = (arr, norm, color, dash) => {
+                g.beginPath(); g.setLineDash(dash); g.strokeStyle = color; g.lineWidth = 1.75;
+                for (let i = 0; i < n; i++) {
+                    const y = pad + (H - 2 * pad) * (1 - norm(arr[i]));
+                    if (i === 0) g.moveTo(X(i), y); else g.lineTo(X(i), y);
+                }
+                g.stroke(); g.setLineDash([]);
+            };
+            line(rw, v => (v - mn) / (mx - mn), '#A1A1AA', [4, 3]);
+            line(wr, v => v, '#0A0A0A', []);
+        }
+
+        function exportMap() {
+            const tiles = graph.nodes.map(row => row.map(nd => nd.type === 'BOOST' ? 'BOOST:' + nd.boostDir : nd.type));
+            const blob = new Blob([JSON.stringify({ app: 'gridworld-gym', version: 1, size: GRID_SIZE, tiles }, null, 1)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'gridworld-map.json';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            showToast('Map exported as gridworld-map.json');
+        }
+
+        function importMapFromText(text) {
+            const types = ['EMPTY', 'WALL', 'START', 'GOAL', 'TRAP', 'BOOST', 'PORTAL_A', 'PORTAL_B', 'BONUS'];
+            try {
+                const d = JSON.parse(text);
+                if (!d || !Array.isArray(d.tiles) || d.tiles.length !== GRID_SIZE) throw new Error('size');
+                let starts = 0, goals = 0, sPos = null, gPos = null;
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    if (!Array.isArray(d.tiles[r]) || d.tiles[r].length !== GRID_SIZE) throw new Error('size');
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        const parts = String(d.tiles[r][c]).split(':');
+                        if (types.indexOf(parts[0]) < 0) throw new Error('type');
+                        if (parts[0] === 'START') { starts++; sPos = [r, c]; }
+                        if (parts[0] === 'GOAL') { goals++; gPos = [r, c]; }
+                    }
+                }
+                if (starts !== 1 || goals !== 1) throw new Error('start/goal');
+                stopAllTimers();
+                clearBoardNodes();
+                for (let r = 0; r < GRID_SIZE; r++) {
+                    for (let c = 0; c < GRID_SIZE; c++) {
+                        const parts = String(d.tiles[r][c]).split(':');
+                        graph.nodes[r][c].type = parts[0];
+                        if (parts[0] === 'BOOST' && BOOST_CYCLE.indexOf(parts[1]) >= 0) graph.nodes[r][c].boostDir = parts[1];
+                    }
+                }
+                graph.startNode = graph.nodes[sPos[0]][sPos[1]];
+                graph.goalNode = graph.nodes[gPos[0]][gPos[1]];
+                graph.rebuildEdges(true);
+                resetBrainState(false);
+                updateReachabilityStatus();
+                renderAll();
+                showToast('Map imported.');
+            } catch (err) {
+                showToast('Invalid map file.');
+            }
+        }
+
+        function renderAll() {
+            drawArena();
+            renderTelemetryCards();
+            renderCircularReplayBufferUI();
+            renderTrajectoryStackUI();
+            renderGraphInspectorUI();
+            renderLearningCurve();
+        }
+
+        /* ============================================================================
+           SECTION 10: TOAST BANNER & MODAL CONTROLLERS
+           ============================================================================ */
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'animate-entry px-4 py-3 rounded-lg border border-[#0A0A0A] bg-[#0A0A0A] text-white text-xs font-medium shadow-md';
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.2s ease';
+                setTimeout(() => toast.remove(), 220);
+            }, 2800);
+        }
+
+        let activeCodeTab = 'graph';
+        function openCodeModal(tabKey = 'graph') {
+            activeCodeTab = tabKey;
+            document.getElementById('dsaCodeDisplay').textContent = DSA_CODE_TABS[tabKey];
+
+            const tabs = document.querySelectorAll('.code-tab-btn');
+            for (let i = 0; i < tabs.length; i++) {
+                const t = tabs[i];
+                const isSelected = t.dataset.codetab === tabKey;
+                t.className = isSelected
+                    ? 'code-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-mono font-semibold bg-white text-[#0A0A0A] border-t border-x border-[#0A0A0A] -mb-px cursor-pointer'
+                    : 'code-tab-btn px-3.5 py-2 rounded-t-lg text-xs font-mono font-medium text-[#52525B] hover:text-[#0A0A0A] cursor-pointer';
+            }
+
+            const modal = document.getElementById('codeModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        /* ============================================================================
+           SECTION 11: EVENT LISTENERS & INITIALIZATION
+           ============================================================================ */
+
+        function setupEventListeners() {
+            // Canvas Mouse Interaction
+            canvas.addEventListener('mousedown', (e) => {
+                const node = getCellFromPointerEvent(e);
+                if (node === null) return;
+
+                if (appState.boardMode === 'EDIT') {
+                    appState.isPointerDown = true;
+                    paintTileWithBrush(node, true);
+                } else {
+                    appState.inspectedNode = node;
+                    drawArena();
+                    renderGraphInspectorUI();
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                const node = getCellFromPointerEvent(e);
+                if (node === null) return;
+
+                if (appState.boardMode === 'EDIT' && appState.isPointerDown) {
+                    paintTileWithBrush(node, false);
+                } else if (!appState.isAnimatingSingle && appState.inspectedNode !== node) {
+                    appState.inspectedNode = node;
+                    drawArena();
+                    renderGraphInspectorUI();
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                appState.isPointerDown = false;
+            });
+
+            // Canvas Touch Interaction (Mobile Scroll-Safe in Inspect Mode!)
+            canvas.addEventListener('touchstart', (e) => {
+                const node = getCellFromPointerEvent(e);
+                if (node === null) return;
+
+                if (appState.boardMode === 'EDIT') {
+                    e.preventDefault();
+                    appState.isPointerDown = true;
+                    paintTileWithBrush(node, true);
+                } else {
+                    appState.inspectedNode = node;
+                    drawArena();
+                    renderGraphInspectorUI();
+                }
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (appState.boardMode === 'EDIT' && appState.isPointerDown) {
+                    e.preventDefault();
+                    const node = getCellFromPointerEvent(e);
+                    if (node !== null) paintTileWithBrush(node, false);
+                }
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', () => {
+                appState.isPointerDown = false;
+            });
+
+            // 3-Mode Segmented Toggle
+            const modeBtns = document.querySelectorAll('.board-mode-btn');
+            for (let i = 0; i < modeBtns.length; i++) {
+                modeBtns[i].addEventListener('click', () => {
+                    setBoardMode(modeBtns[i].dataset.boardmode);
+                });
+            }
+
+            // Tile Brush Buttons
+            const brushBtns = document.querySelectorAll('.brush-btn');
+            for (let i = 0; i < brushBtns.length; i++) {
+                brushBtns[i].addEventListener('click', () => {
+                    const clickedBrush = brushBtns[i].dataset.brush;
+
+                    if (clickedBrush === 'BOOST' && appState.activeBrush === 'BOOST') {
+                        let nextIdx = 0;
+                        for (let j = 0; j < 4; j++) {
+                            if (BOOST_CYCLE[j] === appState.brushBoostDir) {
+                                nextIdx = (j + 1) % 4;
+                                break;
+                            }
+                        }
+                        appState.brushBoostDir = BOOST_CYCLE[nextIdx];
+                        updateBoostBrushUI();
+                    }
+
+                    appState.activeBrush = clickedBrush;
+                    for (let k = 0; k < brushBtns.length; k++) {
+                        const active = brushBtns[k].dataset.brush === clickedBrush;
+                        brushBtns[k].className = active
+                            ? 'brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-semibold bg-[#0A0A0A] text-white border border-[#0A0A0A] transition cursor-pointer'
+                            : 'brush-btn flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-xs font-medium bg-white text-[#0A0A0A] border border-[#E4E4E7] hover:border-[#0A0A0A] transition cursor-pointer';
+                    }
+                });
+            }
+
+            // Preset Arena Buttons
+            const presetBtns = document.querySelectorAll('.preset-btn');
+            for (let i = 0; i < presetBtns.length; i++) {
+                presetBtns[i].addEventListener('click', () => {
+                    const chosen = presetBtns[i].dataset.preset;
+                    for (let j = 0; j < presetBtns.length; j++) {
+                        presetBtns[j].className = presetBtns[j].dataset.preset === chosen
+                            ? 'preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#0A0A0A] text-white border border-[#0A0A0A] transition cursor-pointer'
+                            : 'preset-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-white hover:bg-[#F4F4F5] text-[#0A0A0A] border border-[#E4E4E7] transition cursor-pointer';
+                    }
+                    loadPreset(chosen);
+                });
+            }
+
+            // Procedural Map Generator
+            document.getElementById('btnRandomizeMap').addEventListener('click', generateRandomSolvableMap);
+
+            // D-Pad & Keyboard Controls for Manual Play
+            const dpadBtns = document.querySelectorAll('.dpad-btn');
+            for (let i = 0; i < dpadBtns.length; i++) {
+                dpadBtns[i].addEventListener('click', () => {
+                    moveHumanAgent(dpadBtns[i].dataset.dpad);
+                });
+            }
+
+            document.getElementById('btnResetManualRun').addEventListener('click', () => {
+                resetManualRunState(true);
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (appState.boardMode !== 'PLAY') return;
+                const keyMap = {
+                    ArrowUp: 'UP', w: 'UP', W: 'UP',
+                    ArrowDown: 'DOWN', s: 'DOWN', S: 'DOWN',
+                    ArrowLeft: 'LEFT', a: 'LEFT', A: 'LEFT',
+                    ArrowRight: 'RIGHT', d: 'RIGHT', D: 'RIGHT'
+                };
+                if (keyMap[e.key]) {
+                    e.preventDefault();
+                    moveHumanAgent(keyMap[e.key]);
+                }
+            });
+
+            // Overlay Toggles
+            document.getElementById('toggleHeatmap').addEventListener('change', drawArena);
+            document.getElementById('toggleArrows').addEventListener('change', drawArena);
+
+            // RL Training Buttons
+            document.getElementById('btnWatchEpisode').addEventListener('click', () => startAnimatedEpisode(false));
+            document.getElementById('btnTrain100').addEventListener('click', trainBatch100Episodes);
+            document.getElementById('btnAutoTrain').addEventListener('click', toggleAutoTrain);
+            document.getElementById('btnOptimalRun').addEventListener('click', () => startAnimatedEpisode(true));
+            document.getElementById('btnResetBrain').addEventListener('click', () => resetBrainState(true));
+
+            // Speed Slider
+            document.getElementById('speedSlider').addEventListener('input', (e) => {
+                appState.speedPercent = parseInt(e.target.value, 10);
+                document.getElementById('speedValue').textContent = `${appState.speedPercent}%`;
+            });
+
+            // Modals
+            document.getElementById('btnViewCode').addEventListener('click', () => openCodeModal(activeCodeTab));
+            document.getElementById('btnCloseCodeModal').addEventListener('click', () => {
+                const modal = document.getElementById('codeModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+
+            const codeTabBtns = document.querySelectorAll('.code-tab-btn');
+            for (let i = 0; i < codeTabBtns.length; i++) {
+                codeTabBtns[i].addEventListener('click', () => {
+                    openCodeModal(codeTabBtns[i].dataset.codetab);
+                });
+            }
+
+            document.getElementById('btnCopyCode').addEventListener('click', () => {
+                const temp = document.createElement('textarea');
+                temp.value = DSA_CODE_TABS[activeCodeTab];
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                showToast('DSA code copied to clipboard.');
+            });
+
+            document.getElementById('btnHowItWorks').addEventListener('click', () => {
+                const modal = document.getElementById('helpModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+
+            document.getElementById('btnCloseHelpModal').addEventListener('click', () => {
+                const modal = document.getElementById('helpModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+
+            const modals = [document.getElementById('codeModal'), document.getElementById('helpModal')];
+            for (let i = 0; i < modals.length; i++) {
+                modals[i].addEventListener('click', (e) => {
+                    if (e.target === modals[i]) {
+                        modals[i].classList.add('hidden');
+                        modals[i].classList.remove('flex');
+                    }
+                });
+            }
+
+            // Hyperparameter sliders + experience replay toggle
+            const bindSlider = (id, valId, key, fmt) => {
+                document.getElementById(id).addEventListener('input', (e) => {
+                    appState[key] = parseFloat(e.target.value);
+                    document.getElementById(valId).textContent = fmt(appState[key]);
+                });
+            };
+            bindSlider('sliderAlpha', 'valAlpha', 'alpha', v => v.toFixed(2));
+            bindSlider('sliderGamma', 'valGamma', 'gamma', v => v.toFixed(2));
+            bindSlider('sliderDecay', 'valDecay', 'epsilonDecay', v => v.toFixed(3));
+            document.getElementById('toggleReplay').addEventListener('change', (e) => {
+                appState.replayOn = e.target.checked;
+            });
+
+            // Map save / load
+            document.getElementById('btnExportMap').addEventListener('click', exportMap);
+            document.getElementById('btnImportMap').addEventListener('click', () => document.getElementById('mapFileInput').click());
+            document.getElementById('mapFileInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => importMapFromText(String(reader.result));
+                reader.readAsText(file);
+                e.target.value = '';
+            });
+
+            // Esc closes any open modal
+            window.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                for (let i = 0; i < modals.length; i++) {
+                    modals[i].classList.add('hidden');
+                    modals[i].classList.remove('flex');
+                }
+            });
+
+            window.addEventListener('resize', () => { resizeCanvas(); renderLearningCurve(); });
+        }
+
+        window.onload = function () {
+            setupEventListeners();
+            loadPreset('default');
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>
