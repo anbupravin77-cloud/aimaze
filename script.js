@@ -2075,15 +2075,15 @@ function renderCircularQueueUI() {
 
     if (item) {
       html += `
-        <div data-ringslot="${i}" class="ring-slot-card p-1.5 rounded-lg border font-mono-code text-[11px] transition-colors cursor-pointer ${borderClass}">
+        <div data-ringslot="${i}" class="ring-slot-card px-2 py-1.5 rounded-lg border font-mono-code text-xs transition-colors cursor-pointer ${borderClass}">
           <div class="flex items-center justify-between leading-none">
             <span class="font-bold text-[var(--text-secondary)]">[${i}]</span>
-            <span class="flex items-center gap-0.5">${badges.join('')}</span>
+            <span class="flex items-center gap-0.5 text-[11px]">${badges.join('')}</span>
           </div>
-          <div class="font-bold text-[var(--text-primary)] truncate leading-tight">
-            (${item.row},${item.col})${DIR_ARROWS[item.direction]}
+          <div class="font-bold text-[var(--text-primary)] whitespace-nowrap leading-tight">
+            (${item.row},${item.col}) ${DIR_ARROWS[item.direction]}
           </div>
-          <div class="flex items-center justify-between text-[10px] leading-none">
+          <div class="flex items-center justify-between text-[11px] leading-none">
             <span class="${
               item.reward >= 0 ? 'text-[var(--accent-moss)]' : 'text-[var(--accent-crimson)]'
             } font-bold">${item.reward >= 0 ? `+${item.reward}` : item.reward}</span>
@@ -2093,13 +2093,13 @@ function renderCircularQueueUI() {
       `;
     } else {
       html += `
-        <div data-ringslot="${i}" class="ring-slot-card p-1.5 rounded-lg border font-mono-code text-[11px] opacity-65 ${borderClass}">
+        <div data-ringslot="${i}" class="ring-slot-card px-2 py-1.5 rounded-lg border font-mono-code text-xs opacity-65 ${borderClass}">
           <div class="flex items-center justify-between leading-none">
             <span class="font-bold text-[var(--text-secondary)]">[${i}]</span>
-            <span>${badges.join('')}</span>
+            <span class="text-[11px]">${badges.join('')}</span>
           </div>
           <div class="text-[var(--text-muted)] font-semibold leading-tight">EMPTY</div>
-          <div class="text-[10px] text-[var(--text-muted)] leading-none">slot ${i}</div>
+          <div class="text-[11px] text-[var(--text-muted)] leading-none">slot ${i}</div>
         </div>
       `;
     }
@@ -2545,7 +2545,7 @@ function updateDebuggerUI() {
 
   if (appState.isRunningEpisode) {
     bar.className =
-      'sm:col-span-5 h-9 px-2.5 rounded-lg border border-[var(--accent-terracotta)] bg-[var(--accent-terracotta-soft)] flex items-center justify-between gap-1.5 transition-colors';
+      'sm:col-span-5 h-10 px-2.5 rounded-lg border border-[var(--accent-terracotta)] bg-[var(--accent-terracotta-soft)] flex items-center justify-between gap-1.5 transition-colors';
     pauseBtn.disabled = false;
     stepBtn.disabled = !appState.debugPaused;
     stopBtn.disabled = false;
@@ -2557,7 +2557,7 @@ function updateDebuggerUI() {
     }
   } else {
     bar.className =
-      'sm:col-span-5 h-9 px-2.5 rounded-lg border border-[var(--border-line)] bg-[var(--bg-well)] flex items-center justify-between gap-1.5 transition-colors';
+      'sm:col-span-5 h-10 px-2.5 rounded-lg border border-[var(--border-line)] bg-[var(--bg-well)] flex items-center justify-between gap-1.5 transition-colors';
     pauseBtn.textContent = 'Pause';
     pauseBtn.disabled = true;
     stepBtn.disabled = true;
@@ -2681,6 +2681,56 @@ function stepHumanMove(direction) {
 }
 
 function bindEvents() {
+  // Collapsible AI Tuning & Map Settings Drawer
+  const tuningDrawer = document.getElementById('tuningDrawer');
+  const toggleBtnInline = document.getElementById('btnToggleTuningDrawer');
+  const toggleBtnHeader = document.getElementById('btnHeaderSettings');
+
+  function toggleTuningDrawer() {
+    if (!tuningDrawer) return;
+    const isHidden = tuningDrawer.classList.contains('hidden');
+    tuningDrawer.classList.toggle('hidden', !isHidden);
+    tuningDrawer.classList.toggle('flex', isHidden);
+    if (toggleBtnInline) {
+      toggleBtnInline.textContent = isHidden ? '⚙ Hide Tuning ▴' : '⚙ Tune AI ▾';
+    }
+    if (toggleBtnHeader) {
+      toggleBtnHeader.classList.toggle('btn-terracotta', isHidden);
+    }
+  }
+
+  if (toggleBtnInline) {
+    toggleBtnInline.addEventListener('click', toggleTuningDrawer);
+  }
+  if (toggleBtnHeader) {
+    toggleBtnHeader.addEventListener('click', toggleTuningDrawer);
+  }
+
+  // Data Structure View Switcher (All 4 2x2 Grid vs Focused Single Structure)
+  const dsaGrid = document.getElementById('dsaCardsGrid');
+  document.querySelectorAll('.dsa-view-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const view = btn.getAttribute('data-dsaview') || 'all';
+      document.querySelectorAll('.dsa-view-btn').forEach((el) => {
+        el.classList.toggle('btn-terracotta', el === btn);
+      });
+
+      if (dsaGrid) {
+        dsaGrid.className =
+          view === 'all'
+            ? 'grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch'
+            : 'grid grid-cols-1 gap-5 items-stretch';
+      }
+
+      document.querySelectorAll('[data-dsacard]').forEach((card) => {
+        const cardId = card.getAttribute('data-dsacard');
+        const show = view === 'all' || cardId === view;
+        card.classList.toggle('hidden', !show);
+        card.classList.toggle('flex', show);
+      });
+    });
+  });
+
   // 2-Theme Toggle (Studio Light <-> Carbon Dark)
   document.getElementById('btnThemeToggle').addEventListener('click', () => {
     appState.theme = appState.theme === 'light' ? 'dark' : 'light';
